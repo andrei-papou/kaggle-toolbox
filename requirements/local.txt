@@ -1,0 +1,4 @@
+-f https://download.pytorch.org/whl/cu116/torch_stable.html
+
+-r base/core.txt
+-r base/laptop.txt
