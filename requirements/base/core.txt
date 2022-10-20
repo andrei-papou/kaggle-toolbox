@@ -1,6 +1,6 @@
 numpy==1.21.6
 sentencepiece==0.1.97
-tensorboard==2.8.0
+tensorboard==2.9.1
 torchmetrics==0.9.3
 tqdm==4.64.1
 transformers==4.21.2
