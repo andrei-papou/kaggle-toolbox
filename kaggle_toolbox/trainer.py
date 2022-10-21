@@ -19,6 +19,7 @@ from kaggle_toolbox.lr_scheduling import LRScheduler
 from kaggle_toolbox.metrics import MeanMetric, PredQualityMetric, MetricCriteria
 from kaggle_toolbox.model import Model
 from kaggle_toolbox.oof import OOFPredDict
+from kaggle_toolbox.progress import ProgressBar, ASCIIProgressBar
 
 _X = t.TypeVar('_X', bound=Movable)
 
@@ -60,7 +61,8 @@ class StandardIterationTrainer(IterationTrainer[_X]):
             device: Device,
             grad_scaler: t.Optional[GradScaler] = None,
             pred_quality_metric_list: t.Optional[t.List[PredQualityMetric]] = None,
-            map_output_to_pred: t.Callable[[torch.Tensor], torch.Tensor] = lambda x: x):
+            map_output_to_pred: t.Callable[[torch.Tensor], torch.Tensor] = lambda x: x,
+            progress_bar: t.Optional[ProgressBar] = None):
         super().__init__(device=device)
         self._model = model.to(device.as_torch)
         self._criterion = criterion
@@ -72,6 +74,7 @@ class StandardIterationTrainer(IterationTrainer[_X]):
         self._loss_metric: MeanMetric = MeanMetric()
         self._pred_quality_metric_list = pred_quality_metric_list if pred_quality_metric_list is not None else []
         self._map_output_to_pred = map_output_to_pred
+        self._progress_bar: ProgressBar = progress_bar if progress_bar is not None else ASCIIProgressBar()
 
     @property
     def device(self) -> Device:
@@ -82,7 +85,7 @@ class StandardIterationTrainer(IterationTrainer[_X]):
             data_iter: SizedIter[t.Tuple[Index, DatasetItem[_X]]]) -> IterationMetricDict:
         self._model.train()
 
-        it = tqdm(data_iter, desc='Training.')
+        it = self._progress_bar(data_iter, desc='Training.')
         with \
                 self._loss_metric as loss_metric, \
                 ContextManagerList(self._pred_quality_metric_list) as pred_quality_metric_list:
@@ -132,7 +135,7 @@ class StandardIterationTrainer(IterationTrainer[_X]):
         self._model.eval()
 
         pred_dict = OOFPredDict()
-        it = tqdm(data_loader, desc='Validating.', total=len(data_loader))
+        it = self._progress_bar(data_loader, desc='Validating.', total=len(data_loader))
         with \
                 self._loss_metric as loss_metric, \
                 ContextManagerList(self._pred_quality_metric_list) as pred_quality_metric_list:

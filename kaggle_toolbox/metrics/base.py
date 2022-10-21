@@ -43,6 +43,5 @@ class PredQualityMetric(Metric):
         raise NotImplementedError()
 
     @classmethod
-    @property
     def valid_name(cls) -> str:
         return f'valid_{cls.name}'
