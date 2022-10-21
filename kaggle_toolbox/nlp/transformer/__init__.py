@@ -1,4 +1,5 @@
 from .backbone import Backbone
+from .data import TokenizerResultCollator
 from .model import Model, StandardModel, ClsTokenPooler, AttentionHeadPooler, MeanPooler, \
     TakeNthHiddenLayerOutputSqueezer
 from .optim import create_nakama_optimizer

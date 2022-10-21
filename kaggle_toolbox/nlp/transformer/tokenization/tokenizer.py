@@ -33,11 +33,6 @@ class TokenizerResult:
     def from_collateable_dict(cls, val: t.Dict[str, torch.Tensor]) -> TokenizerResult:
         return cls(**val)
 
-    @classmethod
-    def collate_fn(cls, item_list: t.List[t_ext.Self]) -> t_ext.Self:
-        return cls.from_collateable_dict(
-            default_collate_fn([item.to_collatable_dict() for item in item_list]))
-
     def __len__(self) -> int:
         return len(self.input_ids)
 
