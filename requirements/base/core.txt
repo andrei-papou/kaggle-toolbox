@@ -2,5 +2,5 @@ numpy~=1.21
 sentencepiece~=0.1
 torchmetrics~=0.9
 tqdm~=4.64
-transformers~=4.21
+transformers~=4.20
 typing_extensions~=4.1

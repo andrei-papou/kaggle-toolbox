@@ -31,7 +31,7 @@ with open('README.md', 'r') as f:
 
 core_requirement_list = read_requirements('requirements/base/core.txt')
 laptop_requirement_list = read_requirements('requirements/base/laptop.txt')
-colab_requirement_list = read_requirements('requirements/base/colab.txt')
+remote_requirement_list = read_requirements('requirements/base/remote.txt')
 
 logger_tensorboard_requirement_list = read_requirements('requirements/base/loggers/tensorboard.txt')
 logger_wandb_requirement_list = read_requirements('requirements/base/loggers/wandb.txt')
@@ -49,7 +49,7 @@ setuptools.setup(
     install_requires=requirement_list,
     extras_require={
         'local': laptop_requirement_list,
-        'colab': colab_requirement_list,
+        'remote': remote_requirement_list,
         'tensorboard': logger_tensorboard_requirement_list,
         'wandb': logger_wandb_requirement_list,
     },
