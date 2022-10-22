@@ -20,10 +20,3 @@ class FracSubsetSize(SubsetSize):
 
     def as_nat(self, num_total: int) -> int:
         return int(self._val * num_total)
-
-
-def print_sub_size(s: SubsetSize):
-    print(s)
-
-
-print_sub_size(FracSubsetSize(1))

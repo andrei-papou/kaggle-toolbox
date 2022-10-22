@@ -15,6 +15,10 @@ class _ProgressBarInstance(t.Iterable[_T], t_ext.Protocol):
 
 class ProgressBar:
 
+    @classmethod
+    def attach_to_pandas(cls):
+        raise NotImplementedError()
+
     def __call__(
             self,
             it: t.Iterable[_T],
@@ -25,6 +29,10 @@ class ProgressBar:
 
 class ASCIIProgressBar(ProgressBar):
 
+    @classmethod
+    def attach_to_pandas(cls):
+        ascii_tqdm.pandas()
+
     def __call__(
             self,
             it: t.Iterable[_T],
@@ -34,6 +42,10 @@ class ASCIIProgressBar(ProgressBar):
 
 
 class NotebookProgressBar(ProgressBar):
+
+    @classmethod
+    def attach_to_pandas(cls):
+        notebook_tqdm.pandas()
 
     def __call__(
             self,

@@ -2,3 +2,6 @@
 
 -r base/core.txt
 -r base/laptop.txt
+-r base/loggers/tensorboard.txt
+-r base/loggers/wandb.txt
+-r base/dev.txt

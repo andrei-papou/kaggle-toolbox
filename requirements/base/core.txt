@@ -1,8 +1,6 @@
-numpy==1.21.6
-sentencepiece==0.1.97
-tensorboard==2.9.1
-torchmetrics==0.9.3
-tqdm==4.64.1
-transformers==4.21.2
-typing_extensions==4.1.1
-wandb==0.13.2
+numpy~=1.21
+sentencepiece~=0.1
+torchmetrics~=0.9
+tqdm~=4.64
+transformers~=4.21
+typing_extensions~=4.1

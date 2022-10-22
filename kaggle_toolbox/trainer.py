@@ -6,14 +6,13 @@ from torch.cuda.amp.autocast_mode import autocast
 from torch.cuda.amp.grad_scaler import GradScaler
 from torch.optim import Optimizer
 from torch.utils.data import Dataset, DataLoader, default_collate as default_collate_fn
-from tqdm import tqdm
 
 from kaggle_toolbox.context import ContextManagerList
 from kaggle_toolbox.data import DatasetItem, Movable
 from kaggle_toolbox.device import Device
 from kaggle_toolbox.iter import Index, SizedIter, IterPlannerBuilder, FixedSubsetIterPlannerBuilder, \
     FracSubsetSize
-from kaggle_toolbox.logging import Logger
+from kaggle_toolbox.logging.base import Logger
 from kaggle_toolbox.loss import Loss
 from kaggle_toolbox.lr_scheduling import LRScheduler
 from kaggle_toolbox.metrics import MeanMetric, PredQualityMetric, MetricCriteria
