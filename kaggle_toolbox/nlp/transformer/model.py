@@ -3,12 +3,31 @@ import typing as t
 
 import torch
 import typing_extensions as t_ext
+from transformers.models.deberta_v2.modeling_deberta_v2 import StableDropout
 
 from kaggle_toolbox.model import Model as BaseModel
 from .backbone import Backbone
 from .data import TokenizedX
 
 _X = t.TypeVar('_X', bound=TokenizedX)
+
+
+class MultiStagedDropout(torch.nn.Module):
+
+    def __init__(
+            self,
+            inner_model: torch.nn.Module,
+            num_stages: int,
+            start_prob: float,
+            increment: float):
+        super().__init__()
+        self._inner_model = inner_model
+        self._dropout_list = torch.nn.ModuleList([
+            StableDropout(start_prob + (increment * i)) for i in range(num_stages)
+        ])
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return torch.stack([self._inner_model(drop(x)) for drop in self._dropout_list], dim=0).mean(dim=0)
 
 
 class Squeezer(torch.nn.Module):
