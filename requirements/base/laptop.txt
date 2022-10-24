@@ -1,6 +1,1 @@
 torch==1.12.1+cu116
-ipykernel
-ipython
-ipywidgets
-iterative-stratification
-pandas
