@@ -14,10 +14,15 @@ _X = t.TypeVar('_X', bound=TokenizedX)
 
 class Backbone(torch.nn.Module, t.Generic[_X]):
 
-    def __init__(self, inner: torch.nn.Module, out_dim_size: int):
+    def __init__(
+            self,
+            inner: torch.nn.Module,
+            out_dim_size: int,
+            initializer_range: t.Optional[float] = None):
         super().__init__()
         self._inner = inner
         self._out_dim_size = out_dim_size
+        self._initializer_range = initializer_range
 
     @classmethod
     def from_huggingface_checkpoint(
@@ -35,11 +40,16 @@ class Backbone(torch.nn.Module, t.Generic[_X]):
         config.output_hidden_states = output_hidden_states
         return cls(
             AutoModel.from_pretrained(checkpoint, config=config),
-            out_dim_size=config.hidden_size)
+            out_dim_size=config.hidden_size,
+            initializer_range=getattr(config, 'initializer_range', None))
 
     @property
     def out_dim_size(self) -> int:
         return self._out_dim_size
+
+    @property
+    def initializer_range(self) -> t.Optional[float]:
+        return self._initializer_range
 
     def named_parameters(self) -> t.Iterator[t.Tuple[str, torch.nn.parameter.Parameter]]:
         return self._inner.named_parameters()
