@@ -45,3 +45,19 @@ class PredQualityMetric(Metric):
     @classmethod
     def valid_name(cls) -> str:
         return f'valid_{cls.name}'
+
+
+class PredQualityTorchmetricsMetric(PredQualityMetric):
+
+    @property
+    def inner(self) -> torchmetrics.Metric:
+        raise NotImplementedError()
+
+    def __call__(self, y_pred: torch.Tensor, y_true: torch.Tensor):
+        self.inner(y_pred, y_true)
+
+    def compute(self) -> float:
+        return float(self.inner.compute())
+
+    def reset(self):
+        self.inner.reset()
