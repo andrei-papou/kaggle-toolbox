@@ -1,9 +1,22 @@
 import typing as t
 
 import torch
+import torchmetrics
 
-from .base import PredQualityMetric
+from .base import PredQualityMetric, PredQualityTorchmetricsMetric
 from .criteria import SmallerIsBetterCriteria
+
+
+class MSEMetric(PredQualityTorchmetricsMetric):
+    name = 'mse'
+    criteria = SmallerIsBetterCriteria()
+
+    def __init__(self, squared: bool = True):
+        self._inner = torchmetrics.MeanSquaredError(squared=squared)
+
+    @property
+    def inner(self) -> torchmetrics.Metric:
+        return self._inner
 
 
 class MCRMSEMetric(PredQualityMetric):
