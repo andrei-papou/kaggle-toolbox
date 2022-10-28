@@ -19,6 +19,7 @@ from kaggle_toolbox.metrics import MeanMetric, PredQualityMetric, MetricCriteria
 from kaggle_toolbox.model import Model
 from kaggle_toolbox.oof import OOFPredDict
 from kaggle_toolbox.progress import ProgressBar, ASCIIProgressBar
+from kaggle_toolbox.typing import ensure_list
 
 _X = t.TypeVar('_X', bound=Movable)
 
@@ -153,7 +154,7 @@ class StandardIterationTrainer(IterationTrainer[_X]):
                 pred_cpu, y_cpu = pred.cpu(), y.cpu()
                 for metric in pred_quality_metric_list:
                     metric(pred_cpu, y_cpu)
-                pred_dict.update(dict(zip(batch.id, [x.tolist() for x in pred.cpu()])))
+                pred_dict.update(dict(zip(batch.id, [ensure_list(x.tolist()) for x in pred.cpu()])))
 
                 metric_str = ' '.join([f'{m.name}: {m.compute():.4f}' for m in pred_quality_metric_list])
                 it.set_description(
