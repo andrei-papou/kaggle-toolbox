@@ -23,3 +23,7 @@ class DynamicDict:
 def unwrap_opt(x: t.Optional[_T]) -> _T:
     assert x is not None
     return x
+
+
+def ensure_list(x: t.Union[_T, t.List[_T]]) -> t.List[_T]:
+    return x if isinstance(x, list) else [x]
