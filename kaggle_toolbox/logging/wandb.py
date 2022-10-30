@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import types
 import typing as t
 
@@ -18,13 +19,13 @@ class WAndBLogger(Logger):
     def __init__(
             self,
             user_name: str,
-            api_key: str,
             project: str,
             run_id: str,
+            api_key: t.Optional[str] = None,
             metric_prefix: t.Optional[str] = None,
             start_method: str = _WANDB_DEFAULT_START_METHOD,
             reinit: bool = _WANDB_DEFAULT_REINIT):
-        wandb.login(key=api_key)
+        wandb.login(key=api_key if api_key is not None else os.environ['WANDB_TOKEN'])
         self._user_name = user_name
         self._project = project
         self._run_id = run_id
@@ -32,7 +33,7 @@ class WAndBLogger(Logger):
         self._start_method = start_method
         self._run: t.Optional[WAndBRun] = None
         self._reinit = reinit
-    
+
     @property
     def run(self) -> WAndBRun:
         assert self._run is not None
@@ -53,7 +54,7 @@ class WAndBLogger(Logger):
             exc_value: t.Optional[BaseException],
             traceback: t.Optional[types.TracebackType]):
         wandb.finish(exit_code=1 if exc_value is not None else 0)
-    
+
     def log_params(self, params: t.Dict[str, t.Any]):
         self.run.config.update(params)
 
