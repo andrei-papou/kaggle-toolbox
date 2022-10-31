@@ -39,7 +39,7 @@ class Squeezer(torch.nn.Module):
         return super().__call__(features)
 
 
-class TakeNthHiddenLayerOutputSqueezer(Squeezer):
+class TakeNthSqueezer(Squeezer):
 
     def __init__(self, n: int = -1):
         super().__init__()
@@ -47,6 +47,38 @@ class TakeNthHiddenLayerOutputSqueezer(Squeezer):
 
     def forward(self, features: torch.Tensor) -> torch.Tensor:
         return features[:, self._n]
+
+
+class _LayerIdxBasedSqueezer(Squeezer):
+
+    def __init__(self, layer_idx_list: t.List[int]) -> None:
+        super().__init__()
+        self._layer_idx_list = layer_idx_list
+
+
+class ConcatSqueezer(_LayerIdxBasedSqueezer):
+
+    def forward(self, features: torch.Tensor) -> torch.Tensor:
+        return torch.concat([features[:, idx] for idx in self._layer_idx_list], dim=-1)
+
+
+class MeanSqueezer(_LayerIdxBasedSqueezer):
+
+    def forward(self, features: torch.Tensor) -> torch.Tensor:
+        return torch.stack([features[:, idx] for idx in self._layer_idx_list], dim=0).mean(dim=0)
+
+
+class SumSqueezer(_LayerIdxBasedSqueezer):
+
+    def __init__(self, layer_idx_list: t.List[int], weight_list: t.Optional[t.List[float]] = None):
+        super().__init__(layer_idx_list=layer_idx_list)
+        self._weight_list = weight_list if weight_list is not None else [1.0] * len(self._layer_idx_list)
+
+    def forward(self, features: torch.Tensor) -> torch.Tensor:
+        return torch.stack([
+            features[:, idx] * w
+            for idx, w in zip(self._layer_idx_list, self._weight_list)
+        ], dim=0).sum(dim=0)
 
 
 class Pooler(torch.nn.Module):
