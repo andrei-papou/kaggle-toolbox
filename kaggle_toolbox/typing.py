@@ -27,3 +27,7 @@ def unwrap_opt(x: t.Optional[_T]) -> _T:
 
 def ensure_list(x: t.Union[_T, t.List[_T]]) -> t.List[_T]:
     return x if isinstance(x, list) else [x]
+
+
+def filter_maybe_list(lst: t.List[t.Optional[_T]]) -> t.List[_T]:
+    return [x for x in lst if x is not None]
