@@ -12,7 +12,8 @@ RUN apt update && apt install -y \
 	gcc \
 	python3.10 \
 	python3.10-dev \
-	python3.10-venv
+	python3.10-venv \
+	zip
 
 RUN mkdir /root/.virtualenvs && mkdir /root/.requirements
 
