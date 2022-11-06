@@ -3,7 +3,7 @@ import typing as t
 from pathlib import Path
 
 
-class OOFPredDict(t.Dict[str, t.List[float]]):
+class PredDict(t.Dict[str, t.List[float]]):
 
     def save_to_csv(self, csv_path: Path, score_col_name_list: t.List[str]):
         with open(csv_path, 'w') as f:

@@ -8,7 +8,7 @@ from torch.optim import Optimizer
 from torch.utils.data import Dataset, DataLoader, default_collate as default_collate_fn
 
 from kaggle_toolbox.context import ContextManagerList
-from kaggle_toolbox.data import DatasetItem, Movable
+from kaggle_toolbox.data import LabeledDatasetItem, Movable
 from kaggle_toolbox.device import Device
 from kaggle_toolbox.iter import Index, SizedIter, IterPlannerBuilder, FixedSubsetIterPlannerBuilder, \
     FracSubsetSize
@@ -17,7 +17,7 @@ from kaggle_toolbox.loss import Loss
 from kaggle_toolbox.lr_scheduling import LRScheduler
 from kaggle_toolbox.metrics import MeanMetric, PredQualityMetric, MetricCriteria
 from kaggle_toolbox.model import Model
-from kaggle_toolbox.oof import OOFPredDict
+from kaggle_toolbox.prediction import PredDict
 from kaggle_toolbox.progress import ProgressBar, ASCIIProgressBar
 from kaggle_toolbox.typing import ensure_list
 
@@ -37,12 +37,12 @@ class IterationTrainer(t.Generic[_X]):
 
     def do_train_iteration(
             self,
-            data_iter: SizedIter[t.Tuple[Index, DatasetItem[_X]]]) -> IterationMetricDict:
+            data_iter: SizedIter[t.Tuple[Index, LabeledDatasetItem[_X]]]) -> IterationMetricDict:
         raise NotImplementedError()
 
     def do_valid_iteration(
             self,
-            data_loader: DataLoader[DatasetItem[_X]]) -> t.Tuple[IterationMetricDict, OOFPredDict]:
+            data_loader: DataLoader[LabeledDatasetItem[_X]]) -> t.Tuple[IterationMetricDict, PredDict]:
         raise NotImplementedError()
 
     def save_result(self, to_path: Path):
@@ -82,7 +82,7 @@ class StandardIterationTrainer(IterationTrainer[_X]):
 
     def do_train_iteration(
             self,
-            data_iter: SizedIter[t.Tuple[Index, DatasetItem[_X]]]) -> IterationMetricDict:
+            data_iter: SizedIter[t.Tuple[Index, LabeledDatasetItem[_X]]]) -> IterationMetricDict:
         self._model.train()
 
         it = self._progress_bar(data_iter, desc='Training.')
@@ -94,7 +94,7 @@ class StandardIterationTrainer(IterationTrainer[_X]):
                 x = x.to(device=self._device)
                 y = y.to(device=self._device.as_str)
 
-                with autocast(enabled=self._grad_scaler is not None):
+                with autocast(enabled=self._grad_scaler is not None):  # type: ignore
                     pred = self._model(x)
                     loss = self._criterion(pred, y)
                 if self._accumulate_gradient_steps > 1:
@@ -131,15 +131,15 @@ class StandardIterationTrainer(IterationTrainer[_X]):
     @torch.no_grad()
     def do_valid_iteration(
             self,
-            data_loader: DataLoader[DatasetItem[_X]]) -> t.Tuple[IterationMetricDict, OOFPredDict]:
+            data_loader: DataLoader[LabeledDatasetItem[_X]]) -> t.Tuple[IterationMetricDict, PredDict]:
         self._model.eval()
 
-        pred_dict = OOFPredDict()
+        pred_dict = PredDict()
         it = self._progress_bar(data_loader, desc='Validating.', total=len(data_loader))
         with \
                 self._loss_metric as loss_metric, \
                 ContextManagerList(self._pred_quality_metric_list) as pred_quality_metric_list:
-            batch: DatasetItem[_X]
+            batch: LabeledDatasetItem[_X]
             for batch in it:
                 x, y = batch.x, batch.y
                 x = x.to(device=self._device)
@@ -183,7 +183,7 @@ class FullCycleTrainer(t.Generic[_X]):
             model_comparison_metric: str,
             model_comparison_metric_criteria: MetricCriteria,
             train_iter_planner_builder: t.Optional[IterPlannerBuilder] = None,
-            collator: t.Optional[t.Callable[[t.List[DatasetItem[_X]]], DatasetItem[_X]]] = None,
+            collator: t.Optional[t.Callable[[t.List[LabeledDatasetItem[_X]]], LabeledDatasetItem[_X]]] = None,
             save_model_to_path: t.Optional[Path] = None,
             logger_list: t.Optional[t.List[Logger]] = None,
             max_steps_no_improvement: t.Optional[int] = None,
@@ -205,8 +205,8 @@ class FullCycleTrainer(t.Generic[_X]):
 
     def do_full_cycle(
             self,
-            train_dataset: Dataset[DatasetItem[_X]],
-            valid_dataset: Dataset[DatasetItem[_X]]) -> t.Tuple[float, OOFPredDict]:
+            train_dataset: Dataset[LabeledDatasetItem[_X]],
+            valid_dataset: Dataset[LabeledDatasetItem[_X]]) -> t.Tuple[float, PredDict]:
         train_data_loader = DataLoader(
             train_dataset,
             collate_fn=self._collator,
@@ -225,7 +225,7 @@ class FullCycleTrainer(t.Generic[_X]):
         best_metric = self._model_comparison_metric_criteria.get_initial_value()
         step_metric = best_metric
         steps_no_improvement = 0
-        pred_dict: t.Optional[OOFPredDict] = None
+        pred_dict: t.Optional[PredDict] = None
         with ContextManagerList(self._logger_list) as logger_list:
             while train_data_iter_planner.epoch < self._num_epochs \
                     and (self._max_steps_no_improvement is None or steps_no_improvement < self._max_steps_no_improvement) \
@@ -256,12 +256,12 @@ class FullCycleTrainer(t.Generic[_X]):
 
 
 def train_kfold_model(
-        train_model_fn: t.Callable[[int], t.Tuple[float, OOFPredDict]],
-        fold_list: t.List[int],) -> t.Tuple[t.List[float], OOFPredDict]:
+        train_model_fn: t.Callable[[int], t.Tuple[float, PredDict]],
+        fold_list: t.List[int],) -> t.Tuple[t.List[float], PredDict]:
     score_list = []
-    oof_pred_dict = OOFPredDict()
+    pred_dict = PredDict()
     for fold in fold_list:
-        model_score, model_oof_pred_dict = train_model_fn(fold)
+        model_score, model_pred_dict = train_model_fn(fold)
         score_list.append(model_score)
-        oof_pred_dict.update(model_oof_pred_dict)
-    return score_list, oof_pred_dict
+        pred_dict.update(model_pred_dict)
+    return score_list, pred_dict

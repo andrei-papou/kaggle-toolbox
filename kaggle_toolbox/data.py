@@ -24,8 +24,11 @@ _X = t.TypeVar('_X', bound=Movable)
 class DatasetItem(t.Generic[_X]):
     id: t.List[str]
     x: _X
-    y: torch.Tensor
 
+
+@dataclass
+class LabeledDatasetItem(DatasetItem[_X]):
+    y: torch.Tensor
 
 
 class DatasetItemCollator(t.Generic[_X]):
@@ -39,8 +42,8 @@ class DatasetItemCollator(t.Generic[_X]):
         self._id_collate_fn = id_collate_fn
         self._y_collate_fn = y_collate_fn
 
-    def __call__(self, item_list: t.List[DatasetItem[_X]]) -> DatasetItem[_X]:
-        return DatasetItem(
+    def __call__(self, item_list: t.List[LabeledDatasetItem[_X]]) -> LabeledDatasetItem[_X]:
+        return LabeledDatasetItem(
             id=self._id_collate_fn([item.id for item in item_list]),
             x=self._x_collate_fn([item.x for item in item_list]),
             y=self._y_collate_fn([item.y for item in item_list]))
