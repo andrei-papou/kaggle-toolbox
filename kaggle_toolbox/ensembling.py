@@ -49,5 +49,5 @@ class EnsemblingStrategy:
 
 class MeanEnsemblingStrategy(EnsemblingStrategy):
 
-    def _ensemble(self, array: np.ndarray, id_list: t.List[str]) -> np.ndarray:
+    def ensemble_array(self, array: np.ndarray, id_list: t.List[str]) -> np.ndarray:
         return array.mean(axis=0)
