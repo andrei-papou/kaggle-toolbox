@@ -3,8 +3,8 @@ import typing as t
 import numpy as np
 import typing_extensions as t_ext
 
-FeatureDict: t.TypeAlias = t.Dict[str, float]
-FeatureArrayDict: t.TypeAlias = t.Dict[str, np.ndarray]
+FeatureDict = t.Dict[str, float]
+FeatureArrayDict = t.Dict[str, np.ndarray]
 
 
 class BaseFeatureGenerator:
