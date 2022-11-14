@@ -2,12 +2,12 @@ import math
 
 import numpy as np
 
-from kaggle_toolbox.features.generation import MeanFeatureGenerator, StdevFeatureGenerator, \
-    FuncBinaryOpTextFeatureGenerator
+from kaggle_toolbox.features.generation import Mean, Stdev, \
+    FuncBinaryOp
 
 
 def test_mean():
-    gen = MeanFeatureGenerator(
+    gen = Mean(
         name='mean_score',
         feature_list=['fold_0_score', 'fold_1_score', 'fold_2_score'])
     feature_arr = gen({
@@ -19,7 +19,7 @@ def test_mean():
 
 
 def test_stdev():
-    gen = StdevFeatureGenerator(
+    gen = Stdev(
         name='mean_score',
         feature_list=['fold_0_score', 'fold_1_score', 'fold_2_score'])
     feature_arr = gen({
@@ -31,7 +31,7 @@ def test_stdev():
 
 
 def test_func_binary_op():
-    gen = FuncBinaryOpTextFeatureGenerator(
+    gen = FuncBinaryOp(
         name='a_plus_b',
         lhs_feature='a',
         rhs_feature='b',

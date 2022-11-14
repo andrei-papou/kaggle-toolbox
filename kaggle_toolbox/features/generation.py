@@ -30,7 +30,7 @@ class _ListAggregationFeatureGenerator(FeatureGenerator):
         self._feature_list = feature_list
 
 
-class MeanFeatureGenerator(_ListAggregationFeatureGenerator):
+class Mean(_ListAggregationFeatureGenerator):
 
     def __call__(self, feature_array_dict: FeatureArrayDict) -> np.ndarray:
         return np.stack([
@@ -38,7 +38,7 @@ class MeanFeatureGenerator(_ListAggregationFeatureGenerator):
         ], axis=0).mean(axis=0)
 
 
-class StdevFeatureGenerator(_ListAggregationFeatureGenerator):
+class Stdev(_ListAggregationFeatureGenerator):
 
     def __call__(self, feature_array_dict: FeatureArrayDict) -> np.ndarray:
         return np.stack([
@@ -46,7 +46,7 @@ class StdevFeatureGenerator(_ListAggregationFeatureGenerator):
         ], axis=0).std(axis=0)
 
 
-class _BinaryOpTextFeatureGenerator(FeatureGenerator):
+class _BinaryOpFeatureGenerator(FeatureGenerator):
 
     def __init__(self, name: str, lhs_feature: str, rhs_feature: str):
         super().__init__(name)
@@ -76,7 +76,7 @@ class _BinaryOpTextFeatureGenerator(FeatureGenerator):
         return feature_generator_list
 
 
-class FuncBinaryOpTextFeatureGenerator(_BinaryOpTextFeatureGenerator):
+class FuncBinaryOp(_BinaryOpFeatureGenerator):
 
     def __init__(
             self,
@@ -94,7 +94,7 @@ class FuncBinaryOpTextFeatureGenerator(_BinaryOpTextFeatureGenerator):
         return self._func(lhs_feature_array, rhs_feature_array)
 
 
-class DivTextFeatureGenerator(_BinaryOpTextFeatureGenerator):
+class Div(_BinaryOpFeatureGenerator):
 
     def _generate_from_arrays(
             self,
@@ -103,7 +103,7 @@ class DivTextFeatureGenerator(_BinaryOpTextFeatureGenerator):
         return lhs_feature_array / rhs_feature_array
 
 
-class L1DistanceTextFeatureGenerator(_BinaryOpTextFeatureGenerator):
+class L1Distance(_BinaryOpFeatureGenerator):
 
     def _generate_from_arrays(
             self,

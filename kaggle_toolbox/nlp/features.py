@@ -55,7 +55,7 @@ def generate_text_features(
     return feature_array_dict
 
 
-class SubstrCountFeatureGenerator(_ElementwiseTextFeatureGenerator):
+class SubstrCount(_ElementwiseTextFeatureGenerator):
 
     def __init__(self, name: str, substr: str):
         super().__init__(name)
@@ -65,7 +65,7 @@ class SubstrCountFeatureGenerator(_ElementwiseTextFeatureGenerator):
         return float(text.count(self._substr))
 
 
-class FuncFeatureGenerator(_ElementwiseTextFeatureGenerator):
+class Func(_ElementwiseTextFeatureGenerator):
 
     def __init__(self, name: str, func: t.Callable[[str], float]):
         super().__init__(name)
