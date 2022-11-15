@@ -30,6 +30,16 @@ class _ListAggregationFeatureGenerator(FeatureGenerator):
         self._feature_list = feature_list
 
 
+class FuncList(_ListAggregationFeatureGenerator):
+
+    def __init__(self, name: str, feature_list: t.List[str], func: t.Callable[[FeatureArrayDict], np.ndarray]):
+        super().__init__(name, feature_list)
+        self._func = func
+
+    def __call__(self, feature_array_dict: FeatureArrayDict) -> np.ndarray:
+        return self._func({feature: feature_array_dict[feature] for feature in self._feature_list})
+
+
 class Mean(_ListAggregationFeatureGenerator):
 
     def __call__(self, feature_array_dict: FeatureArrayDict) -> np.ndarray:
