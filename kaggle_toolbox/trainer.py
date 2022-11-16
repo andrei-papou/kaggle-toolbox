@@ -60,9 +60,10 @@ class StandardIterationTrainer(IterationTrainer[_X]):
             accumulate_gradient_steps: int,
             device: Device,
             grad_scaler: t.Optional[GradScaler] = None,
+            max_grad_norm: t.Optional[float] = None,
             pred_quality_metric_list: t.Optional[t.List[PredQualityMetric]] = None,
             map_output_to_pred: t.Callable[[torch.Tensor], torch.Tensor] = lambda x: x,
-            progress_bar: t.Optional[ProgressBar] = None):
+            progress_bar: t.Optional[ProgressBar] = None,):
         super().__init__(device=device)
         self._model = model.to(device.as_torch)
         self._criterion = criterion
@@ -71,6 +72,7 @@ class StandardIterationTrainer(IterationTrainer[_X]):
         self._accumulate_gradient_steps = accumulate_gradient_steps
         self._device = device
         self._grad_scaler = grad_scaler
+        self._max_grad_norm = max_grad_norm
         self._loss_metric: MeanMetric = MeanMetric()
         self._pred_quality_metric_list = pred_quality_metric_list if pred_quality_metric_list is not None else []
         self._map_output_to_pred = map_output_to_pred
@@ -79,6 +81,9 @@ class StandardIterationTrainer(IterationTrainer[_X]):
     @property
     def device(self) -> Device:
         return self._device
+
+    def _before_optimizer_step(self):
+        pass
 
     def do_train_iteration(
             self,
@@ -103,6 +108,11 @@ class StandardIterationTrainer(IterationTrainer[_X]):
                     grad_scaler.scale(loss).backward()  # type: ignore
                 else:
                     loss.backward()
+
+                if self._max_grad_norm is not None:
+                    torch.nn.utils.clip_grad.clip_grad_norm(self._model.parameters(), self._max_grad_norm)
+
+                self._before_optimizer_step()
 
                 if (idx.local_step_pos[0] + 1) % self._accumulate_gradient_steps == 0:
                     self._optimizer.step()
