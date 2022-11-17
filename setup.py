@@ -40,7 +40,7 @@ requirement_list = core_requirement_list
 
 setuptools.setup(
     name='kaggle_toolbox',
-    version='0.1.8',
+    version='0.1.9',
     description='Toolbox library for Kaggle competitions.',
     long_description=long_description,
     long_description_content_type='text/markdown',

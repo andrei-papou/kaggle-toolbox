@@ -44,6 +44,10 @@ class Backbone(torch.nn.Module, t.Generic[_X]):
             initializer_range=getattr(config, 'initializer_range', None))
 
     @property
+    def inner(self) -> torch.nn.Module:
+        return self._inner
+
+    @property
     def out_dim_size(self) -> int:
         return self._out_dim_size
 
