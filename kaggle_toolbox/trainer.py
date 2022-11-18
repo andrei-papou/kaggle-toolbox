@@ -82,6 +82,9 @@ class StandardIterationTrainer(IterationTrainer[_X]):
     def device(self) -> Device:
         return self._device
 
+    def _after_forward_pass(self, idx: Index, x: _X, y: torch.Tensor):
+        pass
+
     def _before_optimizer_step(self, x: _X, y: torch.Tensor):
         pass
 
@@ -111,6 +114,8 @@ class StandardIterationTrainer(IterationTrainer[_X]):
 
                 if self._max_grad_norm is not None:
                     torch.nn.utils.clip_grad.clip_grad_norm(self._model.parameters(), self._max_grad_norm)
+
+                self._after_forward_pass(idx, x, y)
 
                 if (idx.local_step_pos[0] + 1) % self._accumulate_gradient_steps == 0:
                     self._before_optimizer_step(x, y)
