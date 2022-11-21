@@ -108,7 +108,7 @@ class StandardIterationTrainer(IterationTrainer[_X]):
                 if self._accumulate_gradient_steps > 1:
                     loss /= self._accumulate_gradient_steps
                 if self._grad_scaler is not None:
-                    grad_scaler.scale(loss).backward()  # type: ignore
+                    self._grad_scaler.scale(loss).backward()  # type: ignore
                 else:
                     loss.backward()
 
