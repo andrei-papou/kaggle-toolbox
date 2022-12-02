@@ -2,6 +2,7 @@
 
 -r base/core.txt
 -r base/laptop.txt
+-r base/domains/nlp.txt
 -r base/loggers/tensorboard.txt
 -r base/loggers/wandb.txt
 -r base/dev.txt

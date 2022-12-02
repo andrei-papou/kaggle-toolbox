@@ -22,6 +22,8 @@ def standard_init_embedding(
         mean: float = 0.0,
         std: float = 0.02) -> torch.nn.Embedding:
     module.weight.data.normal_(mean=mean, std=std)
+    if module.padding_idx is not None:
+        module.weight.data[module.padding_idx].zero_()
     return module
 
 

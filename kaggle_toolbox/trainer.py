@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import typing as t
 from pathlib import Path
 
@@ -49,6 +51,15 @@ class IterationTrainer(t.Generic[_X]):
         raise NotImplementedError()
 
 
+class IterationHook(t.Generic[_X]):
+
+    def after_forward_pass(self, trainer: StandardIterationTrainer, idx: Index, x: _X, y: torch.Tensor):
+        pass
+
+    def before_optimizer_step(self, trainer: StandardIterationTrainer, idx: Index, x: _X, y: torch.Tensor):
+        pass
+
+
 class StandardIterationTrainer(IterationTrainer[_X]):
 
     def __init__(
@@ -63,7 +74,8 @@ class StandardIterationTrainer(IterationTrainer[_X]):
             max_grad_norm: t.Optional[float] = None,
             pred_quality_metric_list: t.Optional[t.List[PredQualityMetric]] = None,
             map_output_to_pred: t.Callable[[torch.Tensor], torch.Tensor] = lambda x: x,
-            progress_bar: t.Optional[ProgressBar] = None,):
+            progress_bar: t.Optional[ProgressBar] = None,
+            hook_list: t.Optional[t.List[IterationHook]] = None):
         super().__init__(device=device)
         self._model = model.to(device.as_torch)
         self._criterion = criterion
@@ -77,13 +89,39 @@ class StandardIterationTrainer(IterationTrainer[_X]):
         self._pred_quality_metric_list = pred_quality_metric_list if pred_quality_metric_list is not None else []
         self._map_output_to_pred = map_output_to_pred
         self._progress_bar: ProgressBar = progress_bar if progress_bar is not None else ASCIIProgressBar()
+        self._hook_list = hook_list if hook_list is not None else []
+
+    @property
+    def model(self) -> Model[_X]:
+        return self._model
+
+    @property
+    def criterion(self) -> Loss:
+        return self._criterion
+
+    @property
+    def optimizer(self) -> Optimizer:
+        return self._optimizer
+
+    @property
+    def accumulate_gradient_steps(self) -> int:
+        return self._accumulate_gradient_steps
 
     @property
     def device(self) -> Device:
         return self._device
 
-    def _before_optimizer_step(self, x: _X, y: torch.Tensor):
-        pass
+    @property
+    def grad_scaler(self) -> t.Optional[GradScaler]:
+        return self._grad_scaler
+
+    def _after_forward_pass(self, idx: Index, x: _X, y: torch.Tensor):
+        for hook in self._hook_list:
+            hook.after_forward_pass(self, idx, x, y)
+
+    def _before_optimizer_step(self, idx: Index, x: _X, y: torch.Tensor):
+        for hook in self._hook_list:
+            hook.before_optimizer_step(self, idx, x, y)
 
     def do_train_iteration(
             self,
@@ -105,15 +143,17 @@ class StandardIterationTrainer(IterationTrainer[_X]):
                 if self._accumulate_gradient_steps > 1:
                     loss /= self._accumulate_gradient_steps
                 if self._grad_scaler is not None:
-                    grad_scaler.scale(loss).backward()  # type: ignore
+                    self._grad_scaler.scale(loss).backward()  # type: ignore
                 else:
                     loss.backward()
 
                 if self._max_grad_norm is not None:
                     torch.nn.utils.clip_grad.clip_grad_norm(self._model.parameters(), self._max_grad_norm)
 
+                self._after_forward_pass(idx, x, y)
+
                 if (idx.local_step_pos[0] + 1) % self._accumulate_gradient_steps == 0:
-                    self._before_optimizer_step(x, y)
+                    self._before_optimizer_step(idx, x, y)
                     self._optimizer.step()
                     self._optimizer.zero_grad()
                     self._scheduler.step()

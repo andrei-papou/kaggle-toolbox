@@ -15,14 +15,14 @@ RUN apt update && apt install -y \
 	python3.10-venv \
 	zip
 
-RUN mkdir /root/.virtualenvs && mkdir /root/.requirements
-
-COPY requirements /root/.requirements/kaggle-toolbox
-RUN python3.10 -m venv /root/.virtualenvs/kaggle-toolbox
-RUN PATH="/root/.virtualenvs/kaggle-toolbox/bin:$PATH" pip install -r /root/.requirements/kaggle-toolbox/local.txt
-
 # Install starship shell
 RUN curl -sS https://starship.rs/install.sh > install_starship.sh && \
     chmod +x install_starship.sh && \
     ./install_starship.sh --yes \
     && echo "eval \"\$(starship init bash)\"" >> ~/.bashrc
+
+RUN mkdir /root/.virtualenvs && mkdir /root/.requirements
+
+COPY requirements /root/.requirements/kaggle-toolbox
+RUN python3.10 -m venv /root/.virtualenvs/kaggle-toolbox
+RUN PATH="/root/.virtualenvs/kaggle-toolbox/bin:$PATH" pip install -r /root/.requirements/kaggle-toolbox/local.txt
