@@ -33,6 +33,8 @@ core_requirement_list = read_requirements('requirements/base/core.txt')
 laptop_requirement_list = read_requirements('requirements/base/laptop.txt')
 remote_requirement_list = read_requirements('requirements/base/remote.txt')
 
+domain_nlp_requirement_list = read_requirements('requirements/base/domains/nlp.txt')
+
 logger_tensorboard_requirement_list = read_requirements('requirements/base/loggers/tensorboard.txt')
 logger_wandb_requirement_list = read_requirements('requirements/base/loggers/wandb.txt')
 
@@ -40,7 +42,7 @@ requirement_list = core_requirement_list
 
 setuptools.setup(
     name='kaggle_toolbox',
-    version='0.1.9',
+    version='0.2.0',
     description='Toolbox library for Kaggle competitions.',
     long_description=long_description,
     long_description_content_type='text/markdown',
@@ -52,6 +54,7 @@ setuptools.setup(
         'remote': remote_requirement_list,
         'tensorboard': logger_tensorboard_requirement_list,
         'wandb': logger_wandb_requirement_list,
+        'nlp': domain_nlp_requirement_list,
     },
     classifiers=[
         'Programming Language :: Python :: 3.7',

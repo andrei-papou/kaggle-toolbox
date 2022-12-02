@@ -51,3 +51,33 @@ class MeanEnsemblingStrategy(EnsemblingStrategy):
 
     def ensemble_array(self, array: np.ndarray, id_list: t.List[str]) -> np.ndarray:
         return array.mean(axis=0)
+
+
+class MulticlassMajorityVotingEnsemblingStrategy(EnsemblingStrategy):
+
+    def __init__(self, ensemble_prb_fn: t.Callable[[np.ndarray], np.ndarray] = lambda x: x.mean(axis=0)) -> None:
+        super().__init__()
+        self._ensemble_prb_fn = ensemble_prb_fn
+
+    def ensemble_array(self, array: np.ndarray, id_list: t.List[str]) -> np.ndarray:
+        """
+        Ensemble the scores of the most frequent class.
+
+        :param array: Stacked predictions of the models to be ensembled.
+            :shape: M x N x P, where:
+            M - number of the models to be ensembled,
+            N - number of the samples,
+            P - number of the targets to be predicted.
+        :param id_list: List of the sample ids.
+        :return: The ensembled predictions array.
+            :shape: N x P, where:
+            N - number of the samples,
+            P - number of the targets to be predicted.
+        """
+        cls_array = array.argmax(axis=-1)
+        _, n, c = array.shape
+        ensembled_array = np.zeros((n, c))
+        for i in range(n):
+            majority_cls = t.cast(np.ndarray, np.bincount(cls_array[:, i])).argmax()
+            ensembled_array[i, :] = self._ensemble_prb_fn(array[cls_array[:, i] == majority_cls, i, :])
+        return ensembled_array

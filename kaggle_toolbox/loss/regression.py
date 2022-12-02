@@ -10,6 +10,12 @@ class MSELoss(Loss):
         return torch_f.mse_loss(y_pred, y_true, reduction='mean')
 
 
+class MAELoss(Loss):
+
+    def __call__(self, y_pred: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
+        return (y_pred - y_true).abs().mean()
+
+
 _SMOOTH_L1_BETA_DEFAULT = 1.0
 
 

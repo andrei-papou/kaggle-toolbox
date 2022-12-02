@@ -1,7 +1,7 @@
 import itertools
 import math
 
-from kaggle_toolbox.ensembling import MeanEnsemblingStrategy
+from kaggle_toolbox.ensembling import MeanEnsemblingStrategy, MulticlassMajorityVotingEnsemblingStrategy
 from kaggle_toolbox.prediction import PredDict
 
 
@@ -24,3 +24,15 @@ def test_mean():
     ])
 
     assert _pred_dict_is_close(pred, PredDict(a=[0.9, 0.1], b=[0.5, 0.5]))
+
+
+def test_multiclass_majority_voting():
+    ens = MulticlassMajorityVotingEnsemblingStrategy()
+
+    pred = ens.ensemble([
+        PredDict(a=[0.8, 0.2], b=[0.6, 0.4]),
+        PredDict(a=[0.1, 0.9], b=[0.7, 0.3]),
+        PredDict(a=[1.0, 0.0], b=[0.1, 0.9]),
+    ])
+
+    assert _pred_dict_is_close(pred, PredDict(a=[0.9, 0.1], b=[0.65, 0.35]))
