@@ -159,8 +159,8 @@ class StandardIterationTrainer(IterationTrainer[_X]):
                     self._scheduler.step()
 
                 pred = self._map_output_to_pred(pred)
-                loss_metric(loss.cpu() * self._accumulate_gradient_steps)
-                pred_cpu, y_cpu = pred.cpu(), y.cpu()
+                loss_metric(loss.cpu().detach() * self._accumulate_gradient_steps)
+                pred_cpu, y_cpu = pred.cpu().detach(), y.cpu().detach()
                 for metric in pred_quality_metric_list:
                     metric(pred_cpu, y_cpu)
 
