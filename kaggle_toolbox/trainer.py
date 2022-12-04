@@ -236,7 +236,8 @@ class FullCycleTrainer(t.Generic[_X]):
             save_model_to_path: t.Optional[Path] = None,
             logger_list: t.Optional[t.List[Logger]] = None,
             max_steps_no_improvement: t.Optional[int] = None,
-            stop_at_epoch: t.Optional[int] = None):
+            stop_at_epoch: t.Optional[int] = None,
+            use_persistent_workers: bool = False):
         self._iteration_trainer = iteration_trainer
         self._num_epochs = num_epochs
         self._batch_size = batch_size
@@ -251,6 +252,7 @@ class FullCycleTrainer(t.Generic[_X]):
         self._logger_list = logger_list if logger_list is not None else []
         self._max_steps_no_improvement = max_steps_no_improvement
         self._stop_at_epoch = stop_at_epoch
+        self._use_persistent_workers = use_persistent_workers
 
     def do_full_cycle(
             self,
@@ -261,14 +263,16 @@ class FullCycleTrainer(t.Generic[_X]):
             collate_fn=self._collator,
             batch_size=self._batch_size,
             num_workers=self._num_workers,
-            pin_memory=self._iteration_trainer.device.is_gpu)
+            pin_memory=self._iteration_trainer.device.is_gpu,
+            persistent_workers=self._use_persistent_workers)
         valid_data_loader = DataLoader(
             valid_dataset,
             collate_fn=self._collator,
             batch_size=self._batch_size,
             shuffle=False,
             num_workers=self._num_workers,
-            pin_memory=self._iteration_trainer.device.is_gpu)
+            pin_memory=self._iteration_trainer.device.is_gpu,
+            persistent_workers=self._use_persistent_workers)
         train_data_iter_planner = self._train_iter_planner_builder.build(train_data_loader)
 
         best_metric = self._model_comparison_metric_criteria.get_initial_value()
