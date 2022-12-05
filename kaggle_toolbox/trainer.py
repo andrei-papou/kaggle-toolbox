@@ -140,27 +140,38 @@ class StandardIterationTrainer(IterationTrainer[_X]):
                 with autocast(enabled=self._grad_scaler is not None):  # type: ignore
                     pred = self._model(x)
                     loss = self._criterion(pred, y)
-                if self._accumulate_gradient_steps > 1:
-                    loss /= self._accumulate_gradient_steps
+                    # Loss correction should be done under `autocast`.
+                    # See https://pytorch.org/docs/stable/notes/amp_examples.html#gradient-accumulation
+                    if self._accumulate_gradient_steps > 1:
+                        loss /= self._accumulate_gradient_steps
                 if self._grad_scaler is not None:
                     self._grad_scaler.scale(loss).backward()  # type: ignore
                 else:
                     loss.backward()
 
-                if self._max_grad_norm is not None:
-                    torch.nn.utils.clip_grad.clip_grad_norm(self._model.parameters(), self._max_grad_norm)
-
                 self._after_forward_pass(idx, x, y)
 
                 if (idx.local_step_pos[0] + 1) % self._accumulate_gradient_steps == 0:
+                    # The whole step logic becomes a bit complex because of FP16 support.
+                    # See https://pytorch.org/docs/stable/notes/amp_examples.html#gradient-accumulation
+                    if self._max_grad_norm is not None:
+                        if self._grad_scaler is not None:
+                            # Need to manually unscale the gradient before clipping.
+                            # See https://pytorch.org/docs/stable/notes/amp_examples.html#gradient-clipping
+                            self._grad_scaler.unscale_(self._optimizer)
+                        torch.nn.utils.clip_grad.clip_grad_norm_(self._model.parameters(), self._max_grad_norm)
                     self._before_optimizer_step(idx, x, y)
-                    self._optimizer.step()
+                    if self._grad_scaler is not None:
+                        self._grad_scaler.step(self._optimizer)
+                        self._grad_scaler.update()
+                    else:
+                        self._optimizer.step()
                     self._optimizer.zero_grad()
                     self._scheduler.step()
 
                 pred = self._map_output_to_pred(pred)
-                loss_metric(loss.cpu() * self._accumulate_gradient_steps)
-                pred_cpu, y_cpu = pred.cpu(), y.cpu()
+                loss_metric(loss.cpu().detach() * self._accumulate_gradient_steps)
+                pred_cpu, y_cpu = pred.cpu().detach(), y.cpu().detach()
                 for metric in pred_quality_metric_list:
                     metric(pred_cpu, y_cpu)
 
@@ -199,8 +210,8 @@ class StandardIterationTrainer(IterationTrainer[_X]):
                     loss = self._criterion(pred, y)
 
                 pred = self._map_output_to_pred(pred)
-                loss_metric(loss.cpu())
-                pred_cpu, y_cpu = pred.cpu(), y.cpu()
+                loss_metric(loss.cpu().detach())
+                pred_cpu, y_cpu = pred.cpu().detach(), y.cpu().detach()
                 for metric in pred_quality_metric_list:
                     metric(pred_cpu, y_cpu)
                 pred_dict.update(dict(zip(batch.id, [ensure_list(x.tolist()) for x in pred.cpu()])))
@@ -236,7 +247,8 @@ class FullCycleTrainer(t.Generic[_X]):
             save_model_to_path: t.Optional[Path] = None,
             logger_list: t.Optional[t.List[Logger]] = None,
             max_steps_no_improvement: t.Optional[int] = None,
-            stop_at_epoch: t.Optional[int] = None):
+            stop_at_epoch: t.Optional[int] = None,
+            use_persistent_workers: bool = False):
         self._iteration_trainer = iteration_trainer
         self._num_epochs = num_epochs
         self._batch_size = batch_size
@@ -251,6 +263,7 @@ class FullCycleTrainer(t.Generic[_X]):
         self._logger_list = logger_list if logger_list is not None else []
         self._max_steps_no_improvement = max_steps_no_improvement
         self._stop_at_epoch = stop_at_epoch
+        self._use_persistent_workers = use_persistent_workers
 
     def do_full_cycle(
             self,
@@ -261,14 +274,16 @@ class FullCycleTrainer(t.Generic[_X]):
             collate_fn=self._collator,
             batch_size=self._batch_size,
             num_workers=self._num_workers,
-            pin_memory=self._iteration_trainer.device.is_gpu)
+            pin_memory=self._iteration_trainer.device.is_gpu,
+            persistent_workers=self._use_persistent_workers)
         valid_data_loader = DataLoader(
             valid_dataset,
             collate_fn=self._collator,
             batch_size=self._batch_size,
             shuffle=False,
             num_workers=self._num_workers,
-            pin_memory=self._iteration_trainer.device.is_gpu)
+            pin_memory=self._iteration_trainer.device.is_gpu,
+            persistent_workers=self._use_persistent_workers)
         train_data_iter_planner = self._train_iter_planner_builder.build(train_data_loader)
 
         best_metric = self._model_comparison_metric_criteria.get_initial_value()
