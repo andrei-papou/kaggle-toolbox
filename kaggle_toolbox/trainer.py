@@ -140,21 +140,30 @@ class StandardIterationTrainer(IterationTrainer[_X]):
                 with autocast(enabled=self._grad_scaler is not None):  # type: ignore
                     pred = self._model(x)
                     loss = self._criterion(pred, y)
-                if self._accumulate_gradient_steps > 1:
-                    loss /= self._accumulate_gradient_steps
+                    if self._accumulate_gradient_steps > 1:
+                        loss /= self._accumulate_gradient_steps
                 if self._grad_scaler is not None:
                     self._grad_scaler.scale(loss).backward()  # type: ignore
                 else:
                     loss.backward()
 
-                if self._max_grad_norm is not None:
-                    torch.nn.utils.clip_grad.clip_grad_norm(self._model.parameters(), self._max_grad_norm)
-
                 self._after_forward_pass(idx, x, y)
 
                 if (idx.local_step_pos[0] + 1) % self._accumulate_gradient_steps == 0:
+                    # The whole step logic becomes a bit complex because of FP16 support.
+                    # See https://pytorch.org/docs/stable/notes/amp_examples.html#gradient-accumulation
+                    if self._max_grad_norm is not None:
+                        if self._grad_scaler is not None:
+                            # Need to manually unscale the gradient before clipping.
+                            # See https://pytorch.org/docs/stable/notes/amp_examples.html#gradient-clipping
+                            self._grad_scaler.unscale_(self._optimizer)
+                        torch.nn.utils.clip_grad.clip_grad_norm_(self._model.parameters(), self._max_grad_norm)
                     self._before_optimizer_step(idx, x, y)
-                    self._optimizer.step()
+                    if self._grad_scaler is not None:
+                        self._grad_scaler.step(self._optimizer)
+                        self._grad_scaler.update()
+                    else:
+                        self._optimizer.step()
                     self._optimizer.zero_grad()
                     self._scheduler.step()
 
@@ -199,8 +208,8 @@ class StandardIterationTrainer(IterationTrainer[_X]):
                     loss = self._criterion(pred, y)
 
                 pred = self._map_output_to_pred(pred)
-                loss_metric(loss.cpu())
-                pred_cpu, y_cpu = pred.cpu(), y.cpu()
+                loss_metric(loss.cpu().detach())
+                pred_cpu, y_cpu = pred.cpu().detach(), y.cpu().detach()
                 for metric in pred_quality_metric_list:
                     metric(pred_cpu, y_cpu)
                 pred_dict.update(dict(zip(batch.id, [ensure_list(x.tolist()) for x in pred.cpu()])))
