@@ -1,13 +1,16 @@
+import typing as t
+
 import torch
 import torchmetrics
-import typing_extensions as t_ext
 
 from .criteria import MetricCriteria
+
+_S = t.TypeVar('_S', bound='Metric')
 
 
 class Metric:
 
-    def __enter__(self) -> t_ext.Self:
+    def __enter__(self: _S) -> _S:
         return self
 
     def __exit__(self, *args, **kwargs):

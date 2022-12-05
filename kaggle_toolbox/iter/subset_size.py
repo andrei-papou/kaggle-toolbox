@@ -1,5 +1,5 @@
 class SubsetSize:
-    
+
     def as_nat(self, num_total: int) -> int:
         raise NotImplementedError()
 

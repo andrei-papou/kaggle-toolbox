@@ -55,8 +55,11 @@ class Backbone(torch.nn.Module, t.Generic[_X]):
     def initializer_range(self) -> t.Optional[float]:
         return self._initializer_range
 
-    def named_parameters(self) -> t.Iterator[t.Tuple[str, torch.nn.parameter.Parameter]]:
-        return self._inner.named_parameters()
+    def named_parameters(
+            self,
+            prefix: str = '',
+            recurse: bool = True) -> t.Iterator[t.Tuple[str, torch.nn.parameter.Parameter]]:
+        return self._inner.named_parameters(prefix=prefix, recurse=recurse)
 
     def forward(self, x: _X) -> torch.Tensor:
         return torch.stack(list(self._inner(**x.tensor_dict).hidden_states), dim=1)

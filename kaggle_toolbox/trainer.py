@@ -133,9 +133,8 @@ class StandardIterationTrainer(IterationTrainer[_X]):
                 self._loss_metric as loss_metric, \
                 ContextManagerList(self._pred_quality_metric_list) as pred_quality_metric_list:
             for idx, batch in it:
-                x, y = batch.x, batch.y
-                x = x.to(device=self._device)
-                y = y.to(device=self._device.as_str)
+                x = batch.x.to_device(device=self._device)
+                y = batch.y.to(device=self._device.as_str)
 
                 with autocast(enabled=self._grad_scaler is not None):  # type: ignore
                     pred = self._model(x)
@@ -202,7 +201,7 @@ class StandardIterationTrainer(IterationTrainer[_X]):
             batch: LabeledDatasetItem[_X]
             for batch in it:
                 x, y = batch.x, batch.y
-                x = x.to(device=self._device)
+                x = x.to_device(device=self._device)
                 y = y.to(device=self._device.as_torch)
 
                 with autocast(enabled=self._grad_scaler is not None):
@@ -292,7 +291,8 @@ class FullCycleTrainer(t.Generic[_X]):
         pred_dict: t.Optional[PredDict] = None
         with ContextManagerList(self._logger_list) as logger_list:
             while train_data_iter_planner.epoch < self._num_epochs \
-                    and (self._max_steps_no_improvement is None or steps_no_improvement < self._max_steps_no_improvement) \
+                    and (self._max_steps_no_improvement is None
+                         or steps_no_improvement < self._max_steps_no_improvement) \
                     and (self._stop_at_epoch is None or train_data_iter_planner.epoch < self._stop_at_epoch):
                 train_metrics_to_track = self._iteration_trainer.do_train_iteration(
                     data_iter=train_data_iter_planner.get_next_iter(step_metric))

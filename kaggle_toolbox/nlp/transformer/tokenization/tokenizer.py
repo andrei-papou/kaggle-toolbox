@@ -4,8 +4,6 @@ import typing as t
 from dataclasses import dataclass
 
 import torch
-import typing_extensions as t_ext
-from torch.utils.data import default_collate as default_collate_fn
 from transformers.tokenization_utils_base import PreTrainedTokenizerBase
 from transformers.utils.generic import PaddingStrategy
 
@@ -40,13 +38,13 @@ class TokenizerResult:
     def tensor_dict(self) -> t.Dict[str, torch.Tensor]:
         return self.get_model_input()
 
-    def to(self, device: Device) -> TokenizerResult:
+    def to_device(self, device: Device) -> TokenizerResult:
         return self.__class__.from_collateable_dict({
             k: v.to(device.as_torch) for k, v in self.to_collatable_dict().items()
         })
 
-    def cpu(self) -> TokenizerResult:
-        return self.to(device=CPUDevice())
+    def to_cpu(self) -> TokenizerResult:
+        return self.to_device(device=CPUDevice())
 
 
 class Tokenizer:
@@ -54,7 +52,7 @@ class Tokenizer:
 
     def __init__(self, padding_strategy: PaddingStrategy = PaddingStrategy.MAX_LENGTH):
         self._padding_strategy = padding_strategy
-        self._special_token_list = []
+        self._special_token_list: t.List[str] = []
 
     @property
     def tokenizer(self) -> PreTrainedTokenizerBase:

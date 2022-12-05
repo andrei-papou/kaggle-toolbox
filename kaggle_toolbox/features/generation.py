@@ -1,7 +1,6 @@
 import typing as t
 
 import numpy as np
-import typing_extensions as t_ext
 
 FeatureDict = t.Dict[str, float]
 FeatureArrayDict = t.Dict[str, np.ndarray]
@@ -56,6 +55,9 @@ class Stdev(_ListAggregationFeatureGenerator):
         ], axis=0).std(axis=0)
 
 
+_BF = t.TypeVar('_BF', bound='_BinaryOpFeatureGenerator')
+
+
 class _BinaryOpFeatureGenerator(FeatureGenerator):
 
     def __init__(self, name: str, lhs_feature: str, rhs_feature: str):
@@ -75,7 +77,7 @@ class _BinaryOpFeatureGenerator(FeatureGenerator):
             rhs_feature_array=feature_array_dict[self._rhs_feature])
 
     @classmethod
-    def pairwise_from_feature_list(cls, feature_list: t.List[str]) -> t.List[t_ext.Self]:
+    def pairwise_from_feature_list(cls: t.Type[_BF], feature_list: t.List[str]) -> t.List[_BF]:
         feature_generator_list = []
         for i, lhs_feature in enumerate(feature_list):
             for rhs_feature in feature_list[i:]:
