@@ -140,6 +140,8 @@ class StandardIterationTrainer(IterationTrainer[_X]):
                 with autocast(enabled=self._grad_scaler is not None):  # type: ignore
                     pred = self._model(x)
                     loss = self._criterion(pred, y)
+                    # Loss correction should be done under `autocast`.
+                    # See https://pytorch.org/docs/stable/notes/amp_examples.html#gradient-accumulation
                     if self._accumulate_gradient_steps > 1:
                         loss /= self._accumulate_gradient_steps
                 if self._grad_scaler is not None:
