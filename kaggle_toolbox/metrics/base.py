@@ -4,12 +4,18 @@ import torch
 import torchmetrics
 
 from kaggle_toolbox.data import DatasetKind
-from .criteria import MetricCriteria
+from .criteria import MetricCriteria, SmallerIsBetterCriteria
 
 _S = t.TypeVar('_S', bound='Metric')
 
 
 class Metric:
+    name: str
+    criteria: MetricCriteria
+
+    @classmethod
+    def name_for_dataset_kind(cls, dataset_kind: DatasetKind) -> str:
+        return f'{dataset_kind.value}_{cls.name}'
 
     def __enter__(self: _S) -> _S:
         return self
@@ -24,7 +30,9 @@ class Metric:
         raise NotImplementedError()
 
 
-class MeanMetric(Metric):
+class LossMetric(Metric):
+    name: str = 'loss'
+    criteria: MetricCriteria = SmallerIsBetterCriteria()
 
     def __init__(self):
         self._inner = torchmetrics.MeanMetric()
@@ -40,12 +48,6 @@ class MeanMetric(Metric):
 
 
 class PredQualityMetric(Metric):
-    name: str
-    criteria: MetricCriteria
-
-    @classmethod
-    def name_for_dataset_kind(cls, dataset_kind: DatasetKind) -> str:
-        return f'{dataset_kind.value}_{cls.name}'
 
     def __call__(self, y_pred: torch.Tensor, y_true: torch.Tensor):
         raise NotImplementedError()

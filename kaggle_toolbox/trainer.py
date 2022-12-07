@@ -17,7 +17,7 @@ from kaggle_toolbox.iter import Index, SizedIter, IterPlannerBuilder, FixedSubse
 from kaggle_toolbox.logging.base import Logger
 from kaggle_toolbox.loss import Loss
 from kaggle_toolbox.lr_scheduling import LRScheduler
-from kaggle_toolbox.metrics import MeanMetric, PredQualityMetric
+from kaggle_toolbox.metrics import LossMetric, PredQualityMetric
 from kaggle_toolbox.model import Model
 from kaggle_toolbox.prediction import PredDict
 from kaggle_toolbox.progress import ProgressBar, ASCIIProgressBar
@@ -85,7 +85,7 @@ class StandardIterationTrainer(IterationTrainer[_X]):
         self._device = device
         self._grad_scaler = grad_scaler
         self._max_grad_norm = max_grad_norm
-        self._loss_metric: MeanMetric = MeanMetric()
+        self._loss_metric = LossMetric()
         self._pred_quality_metric_list = pred_quality_metric_list if pred_quality_metric_list is not None else []
         self._map_output_to_pred = map_output_to_pred
         self._progress_bar: ProgressBar = progress_bar if progress_bar is not None else ASCIIProgressBar()
