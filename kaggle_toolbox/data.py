@@ -1,11 +1,18 @@
 import typing as t
 from dataclasses import dataclass
+from enum import Enum
 
 import torch
 import typing_extensions as t_ext
 from torch.utils.data import default_collate as torch_default_collate_fn
 
 from kaggle_toolbox.device import Device
+
+
+class DatasetKind(str, Enum):
+    train = 'train'
+    valid = 'valid'
+
 
 _S = t.TypeVar('_S', bound='Movable')
 

@@ -64,10 +64,10 @@ class WAndBLogger(Logger):
             traceback: t.Optional[types.TracebackType]):
         wandb.finish(exit_code=1 if exc_value is not None else 0)
 
-    def log_params(self, params: t.Dict[str, t.Any]):
+    def _log_params(self, params: t.Dict[str, t.Any]):
         self.run.config.update(params)
 
-    def log_metrics(self, step: int, metrics: t.Dict[str, float]):
+    def _log_metrics(self, step: int, metrics: t.Dict[str, float]):
         self.run.log(
             step=step,
             data={

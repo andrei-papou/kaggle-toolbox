@@ -3,6 +3,7 @@ import typing as t
 import torch
 import torchmetrics
 
+from kaggle_toolbox.data import DatasetKind
 from .criteria import MetricCriteria
 
 _S = t.TypeVar('_S', bound='Metric')
@@ -42,12 +43,12 @@ class PredQualityMetric(Metric):
     name: str
     criteria: MetricCriteria
 
+    @classmethod
+    def name_for_dataset_kind(cls, dataset_kind: DatasetKind) -> str:
+        return f'{dataset_kind.value}_{cls.name}'
+
     def __call__(self, y_pred: torch.Tensor, y_true: torch.Tensor):
         raise NotImplementedError()
-
-    @classmethod
-    def valid_name(cls) -> str:
-        return f'valid_{cls.name}'
 
 
 class PredQualityTorchmetricsMetric(PredQualityMetric):
