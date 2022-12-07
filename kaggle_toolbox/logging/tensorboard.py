@@ -2,13 +2,13 @@ import typing as t
 
 from torch.utils.tensorboard.writer import SummaryWriter
 
-from kaggle_toolbox.metrics import PredQualityMetric
+from kaggle_toolbox.metrics import Metric
 from .base import Logger
 
 
 class TensorBoardLogger(Logger):
 
-    def __init__(self, log_dir: str, metric_whitelist: t.Optional[t.Set[t.Type[PredQualityMetric]]] = None) -> None:
+    def __init__(self, log_dir: str, metric_whitelist: t.Optional[t.Set[t.Type[Metric]]] = None) -> None:
         super().__init__(metric_whitelist=metric_whitelist)
         self._writer: SummaryWriter = SummaryWriter(log_dir=log_dir)
 

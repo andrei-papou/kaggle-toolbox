@@ -4,12 +4,12 @@ import types
 import typing as t
 
 from kaggle_toolbox.data import DatasetKind
-from kaggle_toolbox.metrics import PredQualityMetric
+from kaggle_toolbox.metrics import Metric
 
 
 class Logger:
 
-    def __init__(self, metric_whitelist: t.Optional[t.Set[t.Type[PredQualityMetric]]] = None) -> None:
+    def __init__(self, metric_whitelist: t.Optional[t.Set[t.Type[Metric]]] = None) -> None:
         self._metric_whitelist: t.Optional[t.Set[str]]
         if metric_whitelist is not None:
             self._metric_whitelist = set()

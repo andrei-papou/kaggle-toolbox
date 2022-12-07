@@ -7,7 +7,7 @@ import typing as t
 import wandb
 from wandb.wandb_run import Run as WAndBRun
 
-from kaggle_toolbox.metrics import PredQualityMetric
+from kaggle_toolbox.metrics import Metric
 from .base import Logger
 
 
@@ -29,7 +29,7 @@ class WAndBLogger(Logger):
             group: t.Optional[str] = None,
             job_type: t.Optional[str] = None,
             resume: t.Optional[t.Union[bool, str]] = None,
-            metric_whitelist: t.Optional[t.Set[t.Type[PredQualityMetric]]] = None):
+            metric_whitelist: t.Optional[t.Set[t.Type[Metric]]] = None):
         super().__init__(metric_whitelist=metric_whitelist)
         wandb.login(key=api_key if api_key is not None else os.environ['WANDB_TOKEN'])
         self._user_name = user_name
