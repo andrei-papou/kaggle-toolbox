@@ -7,7 +7,7 @@ import torch
 from torch.cuda.amp.autocast_mode import autocast
 from torch.cuda.amp.grad_scaler import GradScaler
 from torch.optim import Optimizer
-from torch.utils.data import Dataset, DataLoader, default_collate as default_collate_fn
+from torch.utils.data import Dataset, DataLoader, Sampler, default_collate as default_collate_fn
 
 from kaggle_toolbox.context import ContextManagerList
 from kaggle_toolbox.data import LabeledDatasetItem, Movable, DatasetKind
@@ -241,6 +241,7 @@ class FullCycleTrainer(t.Generic[_X]):
             num_workers: int,
             model_comparison_metric: t.Type[PredQualityMetric],
             train_iter_planner_builder: t.Optional[IterPlannerBuilder] = None,
+            train_sampler: t.Optional[Sampler] = None,
             collator: t.Optional[t.Callable[[t.List[LabeledDatasetItem[_X]]], LabeledDatasetItem[_X]]] = None,
             save_model_to_path: t.Optional[Path] = None,
             logger_list: t.Optional[t.List[Logger]] = None,
@@ -255,6 +256,7 @@ class FullCycleTrainer(t.Generic[_X]):
         self._train_iter_planner_builder: IterPlannerBuilder = train_iter_planner_builder \
             if train_iter_planner_builder is not None \
             else FixedSubsetIterPlannerBuilder(subset_size=FracSubsetSize(1.0))
+        self._train_sampler = train_sampler
         self._collator = collator if collator is not None else default_collate_fn
         self._save_model_to_path = save_model_to_path
         self._logger_list = logger_list if logger_list is not None else []
@@ -270,9 +272,11 @@ class FullCycleTrainer(t.Generic[_X]):
             train_dataset,
             collate_fn=self._collator,
             batch_size=self._batch_size,
+            sampler=self._train_sampler,
             num_workers=self._num_workers,
             pin_memory=self._iteration_trainer.device.is_gpu,
-            persistent_workers=self._use_persistent_workers)
+            persistent_workers=self._use_persistent_workers,
+            shuffle=self._train_sampler is None)
         valid_data_loader = DataLoader(
             valid_dataset,
             collate_fn=self._collator,
