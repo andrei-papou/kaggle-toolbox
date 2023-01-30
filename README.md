@@ -26,3 +26,40 @@ The following extras are available besides `remote`:
 - `tensorboard` - dependencies for the Tensorboard logger.
 - `wandb` - dependencies for the W&B logger.
 - `nlp` - NLP dependencies: mainly Huggingface Transformers library.
+
+
+### Development
+
+Clone the repo.
+
+```
+git clone https://github.com/andrei-papou/kaggle-toolbox.git
+```
+
+Install all development dependencies.
+
+```
+pip install -r requirements/local.txt
+```
+
+Run the tests, mypy and flake8.
+
+```
+./bin/dev/test.sh && mypy && flake8
+```
+
+### Deployment
+
+Make sure `KAGGLE_USERNAME` and `KAGGLE_KEY` environment variables are exported before running Kaggle deployment scripts.
+
+Run the following command to create a dataset in your Kaggle account. This should only be done once.
+
+```
+./kaggle/bin/init_dataset.sh
+```
+
+Then you can deploy a new version of the dataset by running the following command:
+
+```
+./kaggle/bin/create_dataset_version.sh "New version"
+```
