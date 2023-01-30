@@ -7,6 +7,7 @@ import typing as t
 import wandb
 from wandb.wandb_run import Run as WAndBRun
 
+from kaggle_toolbox.metrics import Metric
 from .base import Logger
 
 
@@ -20,11 +21,16 @@ class WAndBLogger(Logger):
             self,
             user_name: str,
             project: str,
-            run_id: str,
+            run_id: t.Optional[str] = None,
             api_key: t.Optional[str] = None,
             metric_prefix: t.Optional[str] = None,
             start_method: str = _WANDB_DEFAULT_START_METHOD,
-            reinit: bool = _WANDB_DEFAULT_REINIT):
+            reinit: bool = _WANDB_DEFAULT_REINIT,
+            group: t.Optional[str] = None,
+            job_type: t.Optional[str] = None,
+            resume: t.Optional[t.Union[bool, str]] = None,
+            metric_whitelist: t.Optional[t.Set[t.Type[Metric]]] = None):
+        super().__init__(metric_whitelist=metric_whitelist)
         wandb.login(key=api_key if api_key is not None else os.environ['WANDB_TOKEN'])
         self._user_name = user_name
         self._project = project
@@ -33,6 +39,9 @@ class WAndBLogger(Logger):
         self._start_method = start_method
         self._run: t.Optional[WAndBRun] = None
         self._reinit = reinit
+        self._group = group
+        self._job_type = job_type
+        self._resume = resume
 
     @property
     def run(self) -> WAndBRun:
@@ -45,7 +54,10 @@ class WAndBLogger(Logger):
             entity=self._user_name,
             id=self._run_id,
             settings=wandb.Settings(start_method=self._start_method),
-            reinit=self._reinit))
+            reinit=self._reinit,
+            group=self._group,
+            job_type=self._job_type,
+            resume=self._resume))
         return self
 
     def __exit__(
@@ -55,10 +67,10 @@ class WAndBLogger(Logger):
             traceback: t.Optional[types.TracebackType]):
         wandb.finish(exit_code=1 if exc_value is not None else 0)
 
-    def log_params(self, params: t.Dict[str, t.Any]):
+    def _log_params(self, params: t.Dict[str, t.Any]):
         self.run.config.update(params)
 
-    def log_metrics(self, step: int, metrics: t.Dict[str, float]):
+    def _log_metrics(self, step: int, metrics: t.Dict[str, float]):
         self.run.log(
             step=step,
             data={

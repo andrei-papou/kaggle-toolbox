@@ -46,7 +46,7 @@ class AWP(t.Generic[_X]):
         self._attack_step(model)
         optimizer.zero_grad()
         for x, y in input_pair_list:
-            x = x.to(device=device)
+            x = x.to_device(device=device)
             y = y.to(device=device.as_torch)
             out = model(x)
             adv_loss = criterion(out, y)

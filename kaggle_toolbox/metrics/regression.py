@@ -23,7 +23,7 @@ class MCRMSEMetric(PredQualityMetric):
     name = 'mcrmse'
     criteria = SmallerIsBetterCriteria()
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._sq_diff_sum: t.Optional[torch.Tensor] = None
         self._n = 0
 

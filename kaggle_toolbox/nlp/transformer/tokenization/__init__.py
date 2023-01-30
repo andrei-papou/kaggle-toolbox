@@ -14,6 +14,7 @@ _BACKBONE_TO_TOKENIZER_TYPE = {
     'allenai/longformer-base-4096': LongformerTokenizer,
 }
 
+
 def get_tokenizer_for_backbone(
         backbone: str,
         checkpoint: t.Optional[str] = None,

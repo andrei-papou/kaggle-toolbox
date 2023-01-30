@@ -170,7 +170,7 @@ class StandardModel(Model[_X]):
         self._dnn = dnn
 
     @property
-    def backbone(self) -> torch.nn.Module:
+    def backbone(self) -> Backbone[_X]:
         return self._backbone
 
     @property

@@ -29,7 +29,16 @@ class LargerIsBetterCriteria(MetricCriteria):
         return 0.0
 
 
+class _MetricValueComparer:
+
+    def __init__(self, criteria: MetricCriteria) -> None:
+        self._criteria = criteria
+
+    def __call__(self, lhs: float, rhs: float) -> int:
+        return 1 if self._criteria.is_improvement(lhs, rhs) else -1
+
+
 def sort_from_best_to_worst(val_list: t.List[float], metric_criteria: MetricCriteria) -> t.List[float]:
     return sorted(
         val_list,
-        key=functools.cmp_to_key(lambda l, r: 1 if metric_criteria.is_improvement(l, r) else -1))
+        key=functools.cmp_to_key(_MetricValueComparer(metric_criteria)))

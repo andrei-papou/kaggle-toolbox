@@ -7,17 +7,17 @@ import torch
 from torch.cuda.amp.autocast_mode import autocast
 from torch.cuda.amp.grad_scaler import GradScaler
 from torch.optim import Optimizer
-from torch.utils.data import Dataset, DataLoader, default_collate as default_collate_fn
+from torch.utils.data import Dataset, DataLoader, Sampler, default_collate as default_collate_fn
 
 from kaggle_toolbox.context import ContextManagerList
-from kaggle_toolbox.data import LabeledDatasetItem, Movable
+from kaggle_toolbox.data import LabeledDatasetItem, Movable, DatasetKind
 from kaggle_toolbox.device import Device
 from kaggle_toolbox.iter import Index, SizedIter, IterPlannerBuilder, FixedSubsetIterPlannerBuilder, \
     FracSubsetSize
 from kaggle_toolbox.logging.base import Logger
 from kaggle_toolbox.loss import Loss
 from kaggle_toolbox.lr_scheduling import LRScheduler
-from kaggle_toolbox.metrics import MeanMetric, PredQualityMetric, MetricCriteria
+from kaggle_toolbox.metrics import LossMetric, PredQualityMetric
 from kaggle_toolbox.model import Model
 from kaggle_toolbox.prediction import PredDict
 from kaggle_toolbox.progress import ProgressBar, ASCIIProgressBar
@@ -85,7 +85,7 @@ class StandardIterationTrainer(IterationTrainer[_X]):
         self._device = device
         self._grad_scaler = grad_scaler
         self._max_grad_norm = max_grad_norm
-        self._loss_metric: MeanMetric = MeanMetric()
+        self._loss_metric = LossMetric()
         self._pred_quality_metric_list = pred_quality_metric_list if pred_quality_metric_list is not None else []
         self._map_output_to_pred = map_output_to_pred
         self._progress_bar: ProgressBar = progress_bar if progress_bar is not None else ASCIIProgressBar()
@@ -133,9 +133,8 @@ class StandardIterationTrainer(IterationTrainer[_X]):
                 self._loss_metric as loss_metric, \
                 ContextManagerList(self._pred_quality_metric_list) as pred_quality_metric_list:
             for idx, batch in it:
-                x, y = batch.x, batch.y
-                x = x.to(device=self._device)
-                y = y.to(device=self._device.as_str)
+                x = batch.x.to_device(device=self._device)
+                y = batch.y.to(device=self._device.as_str)
 
                 with autocast(enabled=self._grad_scaler is not None):  # type: ignore
                     pred = self._model(x)
@@ -202,7 +201,7 @@ class StandardIterationTrainer(IterationTrainer[_X]):
             batch: LabeledDatasetItem[_X]
             for batch in it:
                 x, y = batch.x, batch.y
-                x = x.to(device=self._device)
+                x = x.to_device(device=self._device)
                 y = y.to(device=self._device.as_torch)
 
                 with autocast(enabled=self._grad_scaler is not None):
@@ -240,9 +239,9 @@ class FullCycleTrainer(t.Generic[_X]):
             num_epochs: int,
             batch_size: int,
             num_workers: int,
-            model_comparison_metric: str,
-            model_comparison_metric_criteria: MetricCriteria,
+            model_comparison_metric: t.Type[PredQualityMetric],
             train_iter_planner_builder: t.Optional[IterPlannerBuilder] = None,
+            train_sampler: t.Optional[Sampler] = None,
             collator: t.Optional[t.Callable[[t.List[LabeledDatasetItem[_X]]], LabeledDatasetItem[_X]]] = None,
             save_model_to_path: t.Optional[Path] = None,
             logger_list: t.Optional[t.List[Logger]] = None,
@@ -254,10 +253,10 @@ class FullCycleTrainer(t.Generic[_X]):
         self._batch_size = batch_size
         self._num_workers = num_workers
         self._model_comparison_metric = model_comparison_metric
-        self._model_comparison_metric_criteria = model_comparison_metric_criteria
         self._train_iter_planner_builder: IterPlannerBuilder = train_iter_planner_builder \
             if train_iter_planner_builder is not None \
             else FixedSubsetIterPlannerBuilder(subset_size=FracSubsetSize(1.0))
+        self._train_sampler = train_sampler
         self._collator = collator if collator is not None else default_collate_fn
         self._save_model_to_path = save_model_to_path
         self._logger_list = logger_list if logger_list is not None else []
@@ -273,9 +272,11 @@ class FullCycleTrainer(t.Generic[_X]):
             train_dataset,
             collate_fn=self._collator,
             batch_size=self._batch_size,
+            sampler=self._train_sampler,
             num_workers=self._num_workers,
             pin_memory=self._iteration_trainer.device.is_gpu,
-            persistent_workers=self._use_persistent_workers)
+            persistent_workers=self._use_persistent_workers,
+            shuffle=self._train_sampler is None)
         valid_data_loader = DataLoader(
             valid_dataset,
             collate_fn=self._collator,
@@ -286,19 +287,21 @@ class FullCycleTrainer(t.Generic[_X]):
             persistent_workers=self._use_persistent_workers)
         train_data_iter_planner = self._train_iter_planner_builder.build(train_data_loader)
 
-        best_metric = self._model_comparison_metric_criteria.get_initial_value()
+        best_metric = self._model_comparison_metric.criteria.get_initial_value()
         step_metric = best_metric
         steps_no_improvement = 0
         pred_dict: t.Optional[PredDict] = None
         with ContextManagerList(self._logger_list) as logger_list:
             while train_data_iter_planner.epoch < self._num_epochs \
-                    and (self._max_steps_no_improvement is None or steps_no_improvement < self._max_steps_no_improvement) \
+                    and (self._max_steps_no_improvement is None
+                         or steps_no_improvement < self._max_steps_no_improvement) \
                     and (self._stop_at_epoch is None or train_data_iter_planner.epoch < self._stop_at_epoch):
                 train_metrics_to_track = self._iteration_trainer.do_train_iteration(
                     data_iter=train_data_iter_planner.get_next_iter(step_metric))
                 valid_metrics_to_track, iter_pred_dict = self._iteration_trainer.do_valid_iteration(
                     data_loader=valid_data_loader)
-                step_metric = valid_metrics_to_track[self._model_comparison_metric]
+                step_metric = valid_metrics_to_track[
+                    self._model_comparison_metric.name_for_dataset_kind(DatasetKind.valid)]
                 for logger in logger_list:
                     logger.log_metrics(
                         step=train_data_iter_planner.step,
@@ -306,7 +309,7 @@ class FullCycleTrainer(t.Generic[_X]):
                             **train_metrics_to_track,
                             **valid_metrics_to_track,
                         })
-                if self._model_comparison_metric_criteria.is_improvement(best_metric, step_metric):
+                if self._model_comparison_metric.criteria.is_improvement(best_metric, step_metric):
                     print(f'Best metric improved from {best_metric} to {step_metric}. Saving the model.')
                     if self._save_model_to_path is not None:
                         self._iteration_trainer.save_result(to_path=self._save_model_to_path)

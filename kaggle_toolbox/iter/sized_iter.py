@@ -3,12 +3,11 @@ from __future__ import annotations
 import itertools
 import typing as t
 
-import typing_extensions as t_ext
-
 from kaggle_toolbox.iter.torch_types import DataLoader
 
 _T = t.TypeVar('_T', covariant=True)
 _L = t.TypeVar('_L', covariant=True)
+_S = t.TypeVar('_S', bound='SizedIter')
 
 
 class SizedIter(t.Generic[_T]):
@@ -18,10 +17,10 @@ class SizedIter(t.Generic[_T]):
         self._n = n
 
     @classmethod
-    def from_data_loader(cls, data_loader: DataLoader[_T]) -> t_ext.Self:
+    def from_data_loader(cls: t.Type[_S], data_loader: DataLoader[_T]) -> _S:
         return cls(it=iter(data_loader), n=len(data_loader))
 
-    def __iter__(self) -> t_ext.Self:
+    def __iter__(self: _S) -> _S:
         return self
 
     def __len__(self) -> int:

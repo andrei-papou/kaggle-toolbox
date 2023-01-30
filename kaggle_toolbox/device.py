@@ -30,12 +30,6 @@ class UnexpectedGPUModelException(BaseException):
     pass
 
 
-def ensure_gpu_model(expected_gpu_model: str):
-    actual_gpu_model = torch.cuda.get_device_name().lower().replace(' ', '_').replace('-', '_')
-    if actual_gpu_model != expected_gpu_model:
-        raise UnexpectedGPUModelException(f'Expected GPU {expected_gpu_model} but received {actual_gpu_model}.')
-
-
 class CUDADevice(Device):
     _str_repr_prefix = 'cuda'
     _str_repr_template = f'{_str_repr_prefix}:{{id}}'

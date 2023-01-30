@@ -5,9 +5,9 @@ from kaggle_toolbox.ensembling import MeanEnsemblingStrategy, MulticlassMajority
 from kaggle_toolbox.prediction import PredDict
 
 
-def _pred_dict_is_close(l: PredDict, r: PredDict):
-    for k in set(l.keys()) | set(r.keys()):
-        for lx, rx in itertools.zip_longest(l[k], r[k]):
+def _pred_dict_is_close(lhs: PredDict, rhs: PredDict):
+    for k in set(lhs.keys()) | set(rhs.keys()):
+        for lx, rx in itertools.zip_longest(lhs[k], rhs[k]):
             if not math.isclose(lx, rx):
                 print(f'`math.isclose` failed for {lx} and {rx}')
                 return False
