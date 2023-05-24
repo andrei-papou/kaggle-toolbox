@@ -5,6 +5,9 @@ from transformers.utils.generic import PaddingStrategy
 from .tokenizer import Tokenizer, TokenizerResult
 from .deberta import DebertaTokenizer
 from .longformer import LongformerTokenizer
+from .roberta import RobertaTokenizer
+
+TOKENIZER_ROBERTA = 'roberta-base'
 
 
 _BACKBONE_TO_TOKENIZER_TYPE = {
@@ -12,6 +15,7 @@ _BACKBONE_TO_TOKENIZER_TYPE = {
     'microsoft/deberta-v3-base': DebertaTokenizer,
     'microsoft/deberta-v3-large': DebertaTokenizer,
     'allenai/longformer-base-4096': LongformerTokenizer,
+    TOKENIZER_ROBERTA: RobertaTokenizer,
 }
 
 
