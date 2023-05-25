@@ -6,4 +6,4 @@ from .model import Model, Pooler, Squeezer, StandardModel, ClsTokenPooler, Atten
     MeanPooler, TakeNthSqueezer, SumSqueezer, MeanSqueezer, ConcatSqueezer, MultiStagedDropout
 from .optim import create_nakama_optimizer
 from .seed import seed_everything
-from .tokenization import Tokenizer, TokenizerResult, get_tokenizer_for_backbone
+from .tokenization import Tokenizer, TokenizerResult
