@@ -9,7 +9,6 @@ def kgltbx_try_init_kaggle(init_wandb: bool = False):
     env_var_dict = {
         '__KGLTBX_INSTALL_FROM_GITHUB': '1',
         '__KGLTBX_ENVIRONMENT': 'kaggle',
-        'GITHUB_TOKEN': secrets_client.get_secret('GITHUB_TOKEN'),
     }
     if init_wandb:
         env_var_dict['WANDB_TOKEN'] = secrets_client.get_secret('WANDB_TOKEN')
