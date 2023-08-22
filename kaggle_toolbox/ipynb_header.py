@@ -3,7 +3,11 @@ from pathlib import Path
 
 
 def kgltbx_try_init_kaggle(init_wandb: bool = False):
-    from kaggle_secrets import UserSecretsClient  # type: ignore
+    try:
+        from kaggle_secrets import UserSecretsClient  # type: ignore
+    except ModuleNotFoundError:
+        print('Kaggle initialization failed, probably not running on Kaggle...')
+        return
 
     secrets_client = UserSecretsClient()
     env_var_dict = {
@@ -16,7 +20,11 @@ def kgltbx_try_init_kaggle(init_wandb: bool = False):
 
 
 def kgltbx_try_init_colab(env_gdrive_rel_path: str):
-    from google.colab import drive  # type: ignore
+    try:
+        from google.colab import drive  # type: ignore
+    except ModuleNotFoundError:
+        print('Colab initialization failed, probably not running on Colab...')
+        return
 
     drive.mount('/content/drive')
 
