@@ -94,11 +94,11 @@ class Tokenizer:
     def tokenize(
             self,
             *texts: str,
-            max_len: int,
+            max_len: t.Optional[int] = None,
             add_special_tokens: bool = True) -> TokenizerResult:
         encoding = self.tokenizer(
             *texts,
-            truncation=True,
+            truncation=max_len is not None,
             max_length=max_len,
             padding=self._padding_strategy,
             return_attention_mask=True,
