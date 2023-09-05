@@ -320,7 +320,8 @@ class FullCycleTrainer(t.Generic[_X]):
                     data_iter=train_data_iter_planner.get_next_iter(step_metric))
                 valid_metrics_to_track, iter_pred_dict = self._iteration_trainer.do_valid_iteration(
                     data_loader=valid_data_loader)
-                step_metric = valid_metrics_to_track[f'{DatasetKind.valid}_{self._model_comparison_metric_name}']
+                step_metric = valid_metrics_to_track[
+                    format_dk_metric_name(self._model_comparison_metric_name, DatasetKind.valid)]
                 for logger in logger_list:
                     logger.log_metrics(
                         step=train_data_iter_planner.step,
