@@ -8,7 +8,6 @@ from .criteria import SmallerIsBetterCriteria
 
 
 class MSEMetric(PredQualityTorchmetricsMetric):
-    name = 'mse'
     criteria = SmallerIsBetterCriteria()
 
     def __init__(self):
@@ -20,7 +19,6 @@ class MSEMetric(PredQualityTorchmetricsMetric):
 
 
 class RMSEMetric(PredQualityTorchmetricsMetric):
-    name = 'rmse'
     criteria = SmallerIsBetterCriteria()
 
     def __init__(self) -> None:
@@ -32,7 +30,6 @@ class RMSEMetric(PredQualityTorchmetricsMetric):
 
 
 class MCRMSEMetric(PredQualityMetric):
-    name = 'mcrmse'
     criteria = SmallerIsBetterCriteria()
 
     def __init__(self) -> None:

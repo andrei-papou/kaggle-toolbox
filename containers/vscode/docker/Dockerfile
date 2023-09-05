@@ -15,6 +15,9 @@ RUN apt update && apt install -y \
 	python3.10-venv \
 	zip
 
+# Override git editor
+git config --global core.editor "code --wait"
+
 # Install starship shell
 RUN curl -sS https://starship.rs/install.sh > install_starship.sh && \
     chmod +x install_starship.sh && \
