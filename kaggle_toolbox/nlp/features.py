@@ -67,7 +67,7 @@ class SubstrCount(_ElementwiseTextFeatureGenerator):
 
 class Func(_ElementwiseTextFeatureGenerator):
 
-    def __init__(self, name: str, func: t.Callable[[str], float]):
+    def __init__(self, name: str, func: t.Callable[[str], t.Union[float, np.ndarray]]):
         super().__init__(name)
         self._func = func
 
