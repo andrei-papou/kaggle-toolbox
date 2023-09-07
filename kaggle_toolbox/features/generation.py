@@ -55,6 +55,29 @@ class Stdev(_ListAggregationFeatureGenerator):
         ], axis=0).std(axis=0)
 
 
+class UnaryOpFeatureGenerator(FeatureGenerator):
+
+    def __init__(self, name: str, src_feature: str) -> None:
+        super().__init__(name)
+        self._src_feature = src_feature
+
+    def _generate_from_array(self, src_feature_array: np.ndarray) -> np.ndarray:
+        raise NotImplementedError()
+
+    def __call__(self, feature_array_dict: FeatureArrayDict) -> np.ndarray:
+        return self._generate_from_array(feature_array_dict[self._src_feature])
+
+
+class FuncUnaryOp(UnaryOpFeatureGenerator):
+
+    def __init__(self, name: str, src_feature: str, func: t.Callable[[np.ndarray], np.ndarray]) -> None:
+        super().__init__(name, src_feature)
+        self._func = func
+
+    def _generate_from_array(self, src_feature_array: np.ndarray) -> np.ndarray:
+        return self._func(src_feature_array)
+
+
 _BF = t.TypeVar('_BF', bound='BinaryOpFeatureGenerator')
 
 
