@@ -2,7 +2,6 @@ import typing as t
 
 import numpy as np
 
-FeatureDict = t.Dict[str, float]
 FeatureArrayDict = t.Dict[str, np.ndarray]
 
 
@@ -20,6 +19,18 @@ class FeatureGenerator(BaseFeatureGenerator):
 
     def __call__(self, feature_array_dict: FeatureArrayDict) -> np.ndarray:
         raise NotImplementedError()
+
+
+def generate_features(
+        generator_list: t.List[FeatureGenerator],
+        init_feature_array_dict: t.Optional[FeatureArrayDict] = None) -> FeatureArrayDict:
+    feature_array_dict: FeatureArrayDict = init_feature_array_dict \
+        if init_feature_array_dict is not None else {}
+
+    for generator in generator_list:
+        feature_array_dict[generator.name] = generator(feature_array_dict)
+
+    return feature_array_dict
 
 
 class _ListAggregationFeatureGenerator(FeatureGenerator):
