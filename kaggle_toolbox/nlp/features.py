@@ -18,7 +18,7 @@ class TextFeatureGenerator(BaseFeatureGenerator):
 
 class _ElementwiseTextFeatureGenerator(TextFeatureGenerator):
 
-    def _generate(self, text: str, feature_dict: t.Dict[str, float]) -> float:
+    def _generate(self, text: str, feature_dict: t.Dict[str, float]) -> t.Union[float, np.ndarray]:
         raise NotImplementedError()
 
     def __call__(
@@ -61,7 +61,7 @@ class SubstrCount(_ElementwiseTextFeatureGenerator):
         super().__init__(name)
         self._substr = substr
 
-    def _generate(self, text: str, feature_dict: t.Dict[str, float]) -> float:
+    def _generate(self, text: str, feature_dict: t.Dict[str, float]) -> t.Union[float, np.ndarray]:
         return float(text.count(self._substr))
 
 
@@ -71,5 +71,5 @@ class Func(_ElementwiseTextFeatureGenerator):
         super().__init__(name)
         self._func = func
 
-    def _generate(self, text: str, feature_dict: t.Dict[str, float]) -> float:
+    def _generate(self, text: str, feature_dict: t.Dict[str, float]) -> t.Union[float, np.ndarray]:
         return self._func(text)

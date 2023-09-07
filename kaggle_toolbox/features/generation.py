@@ -55,10 +55,10 @@ class Stdev(_ListAggregationFeatureGenerator):
         ], axis=0).std(axis=0)
 
 
-_BF = t.TypeVar('_BF', bound='_BinaryOpFeatureGenerator')
+_BF = t.TypeVar('_BF', bound='BinaryOpFeatureGenerator')
 
 
-class _BinaryOpFeatureGenerator(FeatureGenerator):
+class BinaryOpFeatureGenerator(FeatureGenerator):
 
     def __init__(self, name: str, lhs_feature: str, rhs_feature: str):
         super().__init__(name)
@@ -88,7 +88,7 @@ class _BinaryOpFeatureGenerator(FeatureGenerator):
         return feature_generator_list
 
 
-class FuncBinaryOp(_BinaryOpFeatureGenerator):
+class FuncBinaryOp(BinaryOpFeatureGenerator):
 
     def __init__(
             self,
@@ -106,7 +106,7 @@ class FuncBinaryOp(_BinaryOpFeatureGenerator):
         return self._func(lhs_feature_array, rhs_feature_array)
 
 
-class Div(_BinaryOpFeatureGenerator):
+class Div(BinaryOpFeatureGenerator):
 
     def _generate_from_arrays(
             self,
@@ -115,7 +115,7 @@ class Div(_BinaryOpFeatureGenerator):
         return lhs_feature_array / rhs_feature_array
 
 
-class L1Distance(_BinaryOpFeatureGenerator):
+class L1Distance(BinaryOpFeatureGenerator):
 
     def _generate_from_arrays(
             self,
