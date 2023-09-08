@@ -1,1 +1,1 @@
-PYTHONPATH="$(pwd):$PYTHONPATH" pytest
+PYTHONPATH="$(pwd):$PYTHONPATH" pytest && mypy && flake8
