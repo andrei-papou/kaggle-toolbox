@@ -4,6 +4,6 @@ from .initialization import standard_init_linear, standard_init_layer_norm, stan
     standard_init_module
 from .model import Model, Pooler, Squeezer, StandardModel, ClsTokenPooler, AttentionHeadPooler, \
     MeanPooler, TakeNthSqueezer, SumSqueezer, MeanSqueezer, ConcatSqueezer, MultiStagedDropout
-from .optim import create_nakama_optimizer
+from .optim import create_encoder_decoder_optimizer
 from .seed import seed_everything
 from .tokenization import Tokenizer, TokenizerResult
