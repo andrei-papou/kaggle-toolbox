@@ -20,7 +20,7 @@ from kaggle_toolbox.lr_scheduling import LRScheduler
 from kaggle_toolbox.metrics import LossMetric, PredQualityMetric, format_dk_metric_name
 from kaggle_toolbox.model import Model
 from kaggle_toolbox.prediction import PredDict
-from kaggle_toolbox.progress import ProgressBar, ASCIIProgressBar
+from kaggle_toolbox.progress import ProgressBar, NoOpProgressBar
 from kaggle_toolbox.typing import ensure_list
 
 _X = t.TypeVar('_X', bound=Movable)
@@ -92,7 +92,7 @@ class StandardIterationTrainer(IterationTrainer[_X]):
         self._loss_metric = LossMetric()
         self._pred_quality_metric_dict = pred_quality_metric_dict if pred_quality_metric_dict is not None else {}
         self._map_output_to_pred = map_output_to_pred
-        self._progress_bar: ProgressBar = progress_bar if progress_bar is not None else ASCIIProgressBar()
+        self._progress_bar = progress_bar if progress_bar is not None else NoOpProgressBar()
         self._hook_list = hook_list if hook_list is not None else []
 
     @property
