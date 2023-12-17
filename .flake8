@@ -7,3 +7,4 @@ per-file-ignores =
     kaggle_toolbox/metrics/__init__.py:F401
     kaggle_toolbox/nlp/transformer/__init__.py:F401
     kaggle_toolbox/nlp/transformer/tokenization/__init__.py:F401
+    kaggle_toolbox/tabular/node/__init__.py:F401
