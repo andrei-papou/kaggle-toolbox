@@ -39,9 +39,9 @@ class NODEBackbone(torch.nn.Sequential):
                 initialize_selection_logits_=initialize_selection_logits_,
                 threshold_init_beta=threshold_init_beta,
                 threshold_init_cutoff=threshold_init_cutoff,)
-            input_dim = min(
-                input_dim + num_trees * tree_output_dim,
-                max_features or int(float("inf")))
+            input_dim += num_trees * tree_output_dim
+            if max_features is not None:
+                input_dim = min(input_dim, max_features)
             layers.append(oddt)
 
         super().__init__(*layers)
