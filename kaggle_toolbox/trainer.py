@@ -264,7 +264,8 @@ class FullCycleTrainer(t.Generic[_X]):
             max_steps_no_improvement: t.Optional[int] = None,
             stop_at_epoch: t.Optional[int] = None,
             use_persistent_workers: bool = False,
-            report_metric_improvement: bool = False):
+            report_metric_improvement: bool = False,
+            epoch_progress_bar: t.Optional[ProgressBar] = None):
         self._iteration_trainer = iteration_trainer
         self._num_epochs = num_epochs
         self._batch_size = batch_size
@@ -281,6 +282,7 @@ class FullCycleTrainer(t.Generic[_X]):
         self._stop_at_epoch = stop_at_epoch
         self._use_persistent_workers = use_persistent_workers
         self._report_metric_improvement = report_metric_improvement
+        self._epoch_progress_bar = epoch_progress_bar if epoch_progress_bar is not None else NoOpProgressBar()
 
     @property
     def _model_comparison_metric(self) -> PredQualityMetric:
@@ -313,6 +315,9 @@ class FullCycleTrainer(t.Generic[_X]):
         step_metric = best_metric
         steps_no_improvement = 0
         pred_dict: t.Optional[PredDict] = None
+
+        last_prog_reported_epoch = 0
+        epoch_progress_bar = self._epoch_progress_bar(it=range(self._num_epochs), total=self._num_epochs)
         with ContextManagerList(self._logger_list) as logger_list:
             while train_data_iter_planner.epoch < self._num_epochs \
                     and (self._max_steps_no_improvement is None
@@ -341,6 +346,10 @@ class FullCycleTrainer(t.Generic[_X]):
                     steps_no_improvement = 0
                 else:
                     steps_no_improvement += 1
+                if train_data_iter_planner.epoch > last_prog_reported_epoch:
+                    epoch_progress_bar.update(1)
+                    last_prog_reported_epoch = train_data_iter_planner.epoch
+        epoch_progress_bar.close()
         assert pred_dict is not None
         return best_metric, pred_dict
 

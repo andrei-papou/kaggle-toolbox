@@ -12,6 +12,12 @@ class _ProgressBarInstance(t.Iterable[_T], t_ext.Protocol):
     def set_description(self, desc: str):
         ...
 
+    def update(self, n: int = 1) -> t.Optional[bool]:
+        ...
+
+    def close(self):
+        ...
+
 
 class _NoOpProgressBarInstance(t.Iterable[_T]):
 
@@ -22,6 +28,12 @@ class _NoOpProgressBarInstance(t.Iterable[_T]):
         return iter(self._it)
 
     def set_description(self, desc: str):
+        pass
+
+    def update(self, n: int = 1) -> t.Optional[bool]:
+        pass
+
+    def close(self):
         pass
 
 
