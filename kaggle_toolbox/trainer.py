@@ -263,7 +263,8 @@ class FullCycleTrainer(t.Generic[_X]):
             logger_list: t.Optional[t.List[Logger]] = None,
             max_steps_no_improvement: t.Optional[int] = None,
             stop_at_epoch: t.Optional[int] = None,
-            use_persistent_workers: bool = False):
+            use_persistent_workers: bool = False,
+            report_metric_improvement: bool = False):
         self._iteration_trainer = iteration_trainer
         self._num_epochs = num_epochs
         self._batch_size = batch_size
@@ -279,6 +280,7 @@ class FullCycleTrainer(t.Generic[_X]):
         self._max_steps_no_improvement = max_steps_no_improvement
         self._stop_at_epoch = stop_at_epoch
         self._use_persistent_workers = use_persistent_workers
+        self._report_metric_improvement = report_metric_improvement
 
     @property
     def _model_comparison_metric(self) -> PredQualityMetric:
@@ -330,7 +332,8 @@ class FullCycleTrainer(t.Generic[_X]):
                             **valid_metrics_to_track,
                         })
                 if self._model_comparison_metric.criteria.is_improvement(best_metric, step_metric):
-                    print(f'Best metric improved from {best_metric} to {step_metric}. Saving the model.')
+                    if self._report_metric_improvement:
+                        print(f'Best metric improved from {best_metric} to {step_metric}. Saving the model.')
                     if self._save_model_to_path is not None:
                         self._iteration_trainer.save_result(to_path=self._save_model_to_path)
                     best_metric = step_metric
