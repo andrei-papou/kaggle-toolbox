@@ -4,7 +4,7 @@ import torch
 import torch.nn.functional as F
 from torch.autograd import Function
 
-from .node.utils import make_ix_like
+from .utils import make_ix_like
 
 
 class SparsemaxFunction(Function):
