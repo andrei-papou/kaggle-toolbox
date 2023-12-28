@@ -3,7 +3,7 @@ import typing as t
 import torch
 
 from kaggle_toolbox.init import Initializer
-from .activations import sparsemax, sparsemoid
+from kaggle_toolbox.tabular.activations import sparsemax, sparsemoid
 from .odst import ODST, ChoiceFunction, BinFunction
 
 

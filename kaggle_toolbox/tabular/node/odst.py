@@ -12,8 +12,8 @@ import torch.nn as nn
 import typing_extensions as t_ext
 
 from kaggle_toolbox.init import Initializer
+from kaggle_toolbox.tabular.activations import sparsemax, sparsemoid
 from kaggle_toolbox.tabular.layers import ModuleWithInit
-from .activations import sparsemax, sparsemoid
 
 
 def _check_numpy(x: object) -> np.ndarray:
