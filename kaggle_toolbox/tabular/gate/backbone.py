@@ -88,7 +88,7 @@ class GATEBackbone(torch.nn.Module):
     @property
     def feature_importance_(self) -> t.Optional[torch.Tensor]:
         return self.gflus.feature_mask_function(self.gflus.feature_masks)\
-            .sum(dim=0).detach().cpu().numpy() if self.gflus is not None else None
+            .sum(dim=0).detach().cpu() if self.gflus is not None else None
 
 
 class GATEHead(torch.nn.Module):

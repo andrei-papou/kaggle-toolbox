@@ -154,6 +154,56 @@ class Entmoid15Function(Function):
         return grad_input
 
 
+def t_softmax(
+        x: torch.Tensor,
+        t: t.Optional[torch.Tensor] = None,
+        dim: int = -1) -> torch.Tensor:
+    if t is None:
+        t = torch.tensor(0.5, device=x.device)
+    assert (t >= 0.0).all()
+    maxes = torch.max(x, dim=dim, keepdim=True).values
+    x_minus_maxes = x - maxes
+
+    w = torch.relu(x_minus_maxes + t) + 1e-8
+    return torch.softmax(x_minus_maxes + torch.log(w), dim=dim)
+
+
+class TSoftmax(torch.nn.Module):
+
+    def __init__(self, t: torch.Tensor, learn_t: bool = False, dim: int = -1):
+        super().__init__()
+        self._t = torch.nn.parameter.Parameter(t, requires_grad=learn_t)
+        self._dim = dim
+
+    @classmethod
+    def t_from_r(
+            cls,
+            input: torch.Tensor,
+            r: torch.Tensor,
+            dim: int = -1,
+            eps: float = 1e-8) -> torch.Tensor:
+        # r represents what is the fraction of zero values that we want to have
+        assert ((0.0 <= r) & (r <= 1.0)).all()
+
+        maxes = torch.max(input, dim=dim, keepdim=True).values
+        input_minus_maxes = input - maxes
+
+        zeros_mask = torch.exp(input_minus_maxes) == 0.0
+        zeros_frac = zeros_mask.sum(dim=dim, keepdim=True).float() / input_minus_maxes.shape[dim]
+
+        q = torch.clamp((r - zeros_frac) / (1 - zeros_frac), min=0.0, max=1.0)
+        x_minus_maxes = input_minus_maxes * (~zeros_mask).float()
+        if q.ndim > 1:
+            t = -torch.quantile(x_minus_maxes, q.view(-1), dim=dim, keepdim=True).detach()
+            t = t.squeeze(dim).diagonal(dim1=-2, dim2=-1).unsqueeze(-1) + eps
+        else:
+            t = -torch.quantile(x_minus_maxes, q, dim=dim).detach() + eps
+        return t
+
+    def forward(self, input: torch.Tensor) -> torch.Tensor:
+        return t_softmax(input, self._t, self._dim)
+
+
 def sparsemax(input: torch.Tensor, dim: int = -1) -> torch.Tensor:
     return SparsemaxFunction.apply(input, dim)
 
