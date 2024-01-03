@@ -23,4 +23,4 @@ class GFLU(BaseGFLU):
             requires_grad=learnable_sparsity)
 
     def _mask_feat_for_stage(self, x: torch.Tensor, d: int) -> torch.Tensor:
-        return t_softmax(self.feature_masks[d], self._t[d]) * x
+        return t_softmax(self.feature_masks[d], torch.relu(self._t[d])) * x
