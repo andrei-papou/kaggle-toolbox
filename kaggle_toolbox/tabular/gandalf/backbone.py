@@ -59,3 +59,9 @@ class GANDALFHead(torch.nn.Module):
         if self._is_regression:
             batch = next(iter(data_loader))
             self._t0.data = torch.mean(batch.y, dim=0)
+
+    def forward(self, backbone_features: torch.Tensor) -> torch.Tensor:
+        y_hat = self._head(backbone_features)
+        if self._is_regression:
+            y_hat = y_hat + self._t0
+        return y_hat
