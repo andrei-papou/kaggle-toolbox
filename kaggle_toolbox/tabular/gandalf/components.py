@@ -1,10 +1,10 @@
 import torch
 
-from kaggle_toolbox.tabular.activations import TSoftmax
-from kaggle_toolbox.tabular.gate.components import GFLU as OriginalGFLU
+from kaggle_toolbox.tabular.activations import t_softmax, TSoftmax
+from kaggle_toolbox.tabular.layers import GFLU as BaseGFLU
 
 
-class GFLU(OriginalGFLU):
+class GFLU(BaseGFLU):
 
     def __init__(
             self,
@@ -13,13 +13,14 @@ class GFLU(OriginalGFLU):
             feature_sparsity: float = 0.3,
             learnable_sparsity: bool = True,
             dropout: float = 0.0,):
-        # Let `feature_mask_function` be initialized by default.
         super().__init__(
             n_features_in=n_features_in,
             n_stages=n_stages,
             dropout=dropout)
 
-        # Override `feature_mask_function` based on `feature_masks`.
-        self.feature_mask_function = TSoftmax(
-            t=TSoftmax.t_from_r(self.feature_masks, r=torch.tensor([feature_sparsity])),
-            learn_t=learnable_sparsity)
+        self._t = torch.nn.parameter.Parameter(
+            TSoftmax.t_from_r(self.feature_masks, r=torch.tensor([feature_sparsity])),
+            requires_grad=learnable_sparsity)
+
+    def _mask_feat_for_stage(self, x: torch.Tensor, d: int) -> torch.Tensor:
+        return t_softmax(self.feature_masks[d], self._t[d]) * x

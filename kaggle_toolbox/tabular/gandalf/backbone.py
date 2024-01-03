@@ -3,6 +3,7 @@ import typing as t
 import torch
 
 from kaggle_toolbox.data import LabeledDatasetItem
+from kaggle_toolbox.tabular.activations import t_softmax
 from .components import GFLU
 
 
@@ -31,7 +32,7 @@ class GANDALFBackbone(torch.nn.Module):
 
     @property
     def feature_importance_(self) -> torch.Tensor:
-        return self.gflus.feature_mask_function(self.gflus.feature_masks)\
+        return t_softmax(self.gflus.feature_masks)\
             .sum(dim=0).detach().cpu()
 
 

@@ -4,6 +4,7 @@ import typing as t
 import torch
 
 from kaggle_toolbox.tabular.activations import entmax15
+from kaggle_toolbox.tabular.layers import GFLU as BaseGFLU
 
 
 BinningAct = t.Callable[[torch.Tensor], torch.Tensor]
@@ -116,7 +117,7 @@ class NeuralDecisionTree(torch.nn.Module):
         return self.dropout(last_level_layer_nodes), feature_masks
 
 
-class GFLU(torch.nn.Module):
+class GFLU(BaseGFLU):
 
     def __init__(
             self,
@@ -124,44 +125,8 @@ class GFLU(torch.nn.Module):
             n_stages: int,
             feature_mask_function: FeatureMaskFn = entmax15,
             dropout: float = 0.0,):
-        super().__init__()
-        self.n_features_in = n_features_in
-        self.n_features_out = n_features_in
+        super().__init__(n_features_in=n_features_in, n_stages=n_stages, dropout=dropout)
         self.feature_mask_function = feature_mask_function
-        self._dropout = dropout
-        self.n_stages = n_stages
 
-        self.w_in = torch.nn.ModuleList([
-            torch.nn.Linear(2 * self.n_features_in, 2 * self.n_features_in)
-            for _ in range(self.n_stages)
-        ])
-        self.w_out = torch.nn.ModuleList([
-            torch.nn.Linear(2 * self.n_features_in, self.n_features_in)
-            for _ in range(self.n_stages)
-        ])
-
-        self.feature_masks = torch.nn.parameter.Parameter(
-            torch.cat(
-                [
-                    torch.distributions.Beta(
-                        torch.tensor([random.uniform(0.5, 10.0)]),
-                        torch.tensor([random.uniform(0.5, 10.0)]),
-                    )
-                    .sample(torch.Size([self.n_features_in,]))
-                    .squeeze(-1)
-                    for _ in range(self.n_stages)
-                ]
-            ).reshape(self.n_stages, self.n_features_in),
-            requires_grad=True)
-        self.dropout = torch.nn.Dropout(self._dropout)
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        h = x
-        for d in range(self.n_stages):
-            feature = self.feature_mask_function(self.feature_masks[d]) * x
-            h_in = self.w_in[d](torch.cat([feature, h], dim=-1))
-            z = torch.sigmoid(h_in[:, : self.n_features_in])
-            r = torch.sigmoid(h_in[:, self.n_features_in :])  # noqa: E203
-            h_out = torch.tanh(self.w_out[d](torch.cat([r * h, x], dim=-1)))
-            h = self.dropout((1 - z) * h + z * h_out)
-        return h
+    def _mask_feat_for_stage(self, x: torch.Tensor, d: int) -> torch.Tensor:
+        return self.feature_mask_function(self.feature_masks[d]) * x

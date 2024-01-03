@@ -170,9 +170,8 @@ def t_softmax(
 
 class TSoftmax(torch.nn.Module):
 
-    def __init__(self, t: torch.Tensor, learn_t: bool = False, dim: int = -1):
+    def __init__(self, dim: int = -1):
         super().__init__()
-        self._t = torch.nn.parameter.Parameter(t, requires_grad=learn_t)
         self._dim = dim
 
     @classmethod
@@ -200,8 +199,8 @@ class TSoftmax(torch.nn.Module):
             t = -torch.quantile(x_minus_maxes, q, dim=dim).detach() + eps
         return t
 
-    def forward(self, input: torch.Tensor) -> torch.Tensor:
-        return t_softmax(input, self._t, self._dim)
+    def forward(self, input: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
+        return t_softmax(input, t, self._dim)
 
 
 def sparsemax(input: torch.Tensor, dim: int = -1) -> torch.Tensor:
