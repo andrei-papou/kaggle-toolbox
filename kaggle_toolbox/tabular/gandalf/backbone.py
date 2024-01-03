@@ -57,4 +57,4 @@ class GANDALFHead(torch.nn.Module):
     def init_from_data(self, data_loader: t.Iterable[LabeledDatasetItem[t.Any]]):
         if self._is_regression:
             batch = next(iter(data_loader))
-            self.t0.data = torch.mean(batch.y, dim=0)
+            self._t0.data = torch.mean(batch.y, dim=0)
