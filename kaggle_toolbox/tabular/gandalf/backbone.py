@@ -11,7 +11,7 @@ class GANDALFBackbone(torch.nn.Module):
     def __init__(
             self,
             input_dim: int,
-            gflu_stages: int,
+            num_gflu_stages: int,
             gflu_dropout: float = 0.0,
             gflu_feature_init_sparsity: float = 0.3,
             learnable_sparsity: bool = True,):
@@ -21,7 +21,7 @@ class GANDALFBackbone(torch.nn.Module):
 
         self.gflus = GFLU(
             n_features_in=self.n_features,
-            n_stages=gflu_stages,
+            n_stages=num_gflu_stages,
             dropout=gflu_dropout,
             feature_sparsity=gflu_feature_init_sparsity,
             learnable_sparsity=learnable_sparsity,)

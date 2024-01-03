@@ -22,8 +22,7 @@ class GATEBackbone(torch.nn.Module):
             gflu_dropout: float = 0.0,
             tree_dropout: float = 0.0,
             binning_activation: BinningAct = entmoid15,
-            feature_mask_function: FeatureMaskFn = torch.nn.functional.softmax,
-            embedding_dropout: float = 0.0,):
+            feature_mask_function: FeatureMaskFn = torch.nn.functional.softmax,):
         super().__init__()
 
         self.num_trees = num_trees
@@ -36,7 +35,6 @@ class GATEBackbone(torch.nn.Module):
         self.binning_activation = binning_activation
         self.feature_mask_function = feature_mask_function
         self.n_features = input_dim
-        self.embedding_dropout = embedding_dropout
         self.output_dim = 2**self.tree_depth
 
         self.gflus = GFLU(
