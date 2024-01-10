@@ -2,7 +2,6 @@ import typing as t
 
 import numpy as np
 
-FeatureDict = t.Dict[str, float]
 FeatureArrayDict = t.Dict[str, np.ndarray]
 
 
@@ -20,6 +19,18 @@ class FeatureGenerator(BaseFeatureGenerator):
 
     def __call__(self, feature_array_dict: FeatureArrayDict) -> np.ndarray:
         raise NotImplementedError()
+
+
+def generate_features(
+        generator_list: t.List[FeatureGenerator],
+        init_feature_array_dict: t.Optional[FeatureArrayDict] = None) -> FeatureArrayDict:
+    feature_array_dict: FeatureArrayDict = init_feature_array_dict \
+        if init_feature_array_dict is not None else {}
+
+    for generator in generator_list:
+        feature_array_dict[generator.name] = generator(feature_array_dict)
+
+    return feature_array_dict
 
 
 class _ListAggregationFeatureGenerator(FeatureGenerator):
@@ -55,10 +66,33 @@ class Stdev(_ListAggregationFeatureGenerator):
         ], axis=0).std(axis=0)
 
 
-_BF = t.TypeVar('_BF', bound='_BinaryOpFeatureGenerator')
+class UnaryOpFeatureGenerator(FeatureGenerator):
+
+    def __init__(self, name: str, src_feature: str) -> None:
+        super().__init__(name)
+        self._src_feature = src_feature
+
+    def _generate_from_array(self, src_feature_array: np.ndarray) -> np.ndarray:
+        raise NotImplementedError()
+
+    def __call__(self, feature_array_dict: FeatureArrayDict) -> np.ndarray:
+        return self._generate_from_array(feature_array_dict[self._src_feature])
 
 
-class _BinaryOpFeatureGenerator(FeatureGenerator):
+class FuncUnaryOp(UnaryOpFeatureGenerator):
+
+    def __init__(self, name: str, src_feature: str, func: t.Callable[[np.ndarray], np.ndarray]) -> None:
+        super().__init__(name, src_feature)
+        self._func = func
+
+    def _generate_from_array(self, src_feature_array: np.ndarray) -> np.ndarray:
+        return self._func(src_feature_array)
+
+
+_BF = t.TypeVar('_BF', bound='BinaryOpFeatureGenerator')
+
+
+class BinaryOpFeatureGenerator(FeatureGenerator):
 
     def __init__(self, name: str, lhs_feature: str, rhs_feature: str):
         super().__init__(name)
@@ -88,7 +122,7 @@ class _BinaryOpFeatureGenerator(FeatureGenerator):
         return feature_generator_list
 
 
-class FuncBinaryOp(_BinaryOpFeatureGenerator):
+class FuncBinaryOp(BinaryOpFeatureGenerator):
 
     def __init__(
             self,
@@ -106,7 +140,7 @@ class FuncBinaryOp(_BinaryOpFeatureGenerator):
         return self._func(lhs_feature_array, rhs_feature_array)
 
 
-class Div(_BinaryOpFeatureGenerator):
+class Div(BinaryOpFeatureGenerator):
 
     def _generate_from_arrays(
             self,
@@ -115,7 +149,7 @@ class Div(_BinaryOpFeatureGenerator):
         return lhs_feature_array / rhs_feature_array
 
 
-class L1Distance(_BinaryOpFeatureGenerator):
+class L1Distance(BinaryOpFeatureGenerator):
 
     def _generate_from_arrays(
             self,

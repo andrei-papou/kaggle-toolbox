@@ -4,18 +4,18 @@ import types
 import typing as t
 
 from kaggle_toolbox.data import DatasetKind
-from kaggle_toolbox.metrics import Metric
+from kaggle_toolbox.metrics import format_dk_metric_name
 
 
 class Logger:
 
-    def __init__(self, metric_whitelist: t.Optional[t.Set[t.Type[Metric]]] = None) -> None:
+    def __init__(self, metric_whitelist: t.Optional[t.Set[str]] = None) -> None:
         self._metric_whitelist: t.Optional[t.Set[str]]
         if metric_whitelist is not None:
             self._metric_whitelist = set()
             for m in metric_whitelist:
-                self._metric_whitelist.add(m.name_for_dataset_kind(DatasetKind.train))
-                self._metric_whitelist.add(m.name_for_dataset_kind(DatasetKind.valid))
+                self._metric_whitelist.add(format_dk_metric_name(m, DatasetKind.train))
+                self._metric_whitelist.add(format_dk_metric_name(m, DatasetKind.valid))
         else:
             self._metric_whitelist = None
 

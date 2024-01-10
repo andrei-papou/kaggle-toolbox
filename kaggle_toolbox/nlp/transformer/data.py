@@ -7,7 +7,7 @@ import typing_extensions as t_ext
 from torch.utils.data import default_collate as default_collate_fn
 
 from kaggle_toolbox.data import Movable
-from .tokenization.tokenizer import TokenizerResult
+from .tokenization import TokenizerResult
 
 
 class TokenizedX(Movable, t_ext.Protocol):

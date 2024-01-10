@@ -9,13 +9,12 @@ from .criteria import MetricCriteria, SmallerIsBetterCriteria
 _S = t.TypeVar('_S', bound='Metric')
 
 
-class Metric:
-    name: str
-    criteria: MetricCriteria
+def format_dk_metric_name(name: str, dataset_kind: DatasetKind) -> str:
+    return f'{dataset_kind.value}_{name}'
 
-    @classmethod
-    def name_for_dataset_kind(cls, dataset_kind: DatasetKind) -> str:
-        return f'{dataset_kind.value}_{cls.name}'
+
+class Metric:
+    criteria: MetricCriteria
 
     def __enter__(self: _S) -> _S:
         return self
@@ -31,7 +30,6 @@ class Metric:
 
 
 class LossMetric(Metric):
-    name: str = 'loss'
     criteria: MetricCriteria = SmallerIsBetterCriteria()
 
     def __init__(self):

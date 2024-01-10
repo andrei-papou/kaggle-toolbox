@@ -12,6 +12,30 @@ class _ProgressBarInstance(t.Iterable[_T], t_ext.Protocol):
     def set_description(self, desc: str):
         ...
 
+    def update(self, n: int = 1) -> t.Optional[bool]:
+        ...
+
+    def close(self):
+        ...
+
+
+class _NoOpProgressBarInstance(t.Iterable[_T]):
+
+    def __init__(self, it: t.Iterable[_T]) -> None:
+        self._it = it
+
+    def __iter__(self) -> t.Iterator[_T]:
+        return iter(self._it)
+
+    def set_description(self, desc: str):
+        pass
+
+    def update(self, n: int = 1) -> t.Optional[bool]:
+        pass
+
+    def close(self):
+        pass
+
 
 class ProgressBar:
 
@@ -25,6 +49,20 @@ class ProgressBar:
             desc: t.Optional[str] = None,
             total: t.Optional[int] = None) -> _ProgressBarInstance[_T]:
         raise NotImplementedError()
+
+
+class NoOpProgressBar(ProgressBar):
+
+    @classmethod
+    def attach_to_pandas(cls):
+        pass
+
+    def __call__(
+            self,
+            it: t.Iterable[_T],
+            desc: t.Optional[str] = None,
+            total: t.Optional[int] = None) -> _ProgressBarInstance[_T]:
+        return _NoOpProgressBarInstance(it)
 
 
 class ASCIIProgressBar(ProgressBar):

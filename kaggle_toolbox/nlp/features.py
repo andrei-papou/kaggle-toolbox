@@ -16,26 +16,6 @@ class TextFeatureGenerator(BaseFeatureGenerator):
         raise NotImplementedError()
 
 
-class _ElementwiseTextFeatureGenerator(TextFeatureGenerator):
-
-    def _generate(self, text: str, feature_dict: t.Dict[str, float]) -> float:
-        raise NotImplementedError()
-
-    def __call__(
-            self,
-            text_it: t.Iterable[str],
-            feature_array_dict: FeatureArrayDict) -> np.ndarray:
-        return np.array([
-            self._generate(
-                text,
-                {
-                    feature_name: feature_arr[idx].item()
-                    for feature_name, feature_arr in feature_array_dict.items()
-                })
-            for idx, text in enumerate(text_it)
-        ])
-
-
 def generate_text_features(
         generator_list: t.List[t.Union[FeatureGenerator, TextFeatureGenerator]],
         text_seq: t.Sequence[str],
@@ -55,21 +35,50 @@ def generate_text_features(
     return feature_array_dict
 
 
+class _ElementwiseTextFeatureGenerator(TextFeatureGenerator):
+
+    def _generate(
+            self,
+            text: str,
+            feature_dict: t.Dict[str, t.Union[float, np.ndarray]]) -> t.Union[float, np.ndarray]:
+        raise NotImplementedError()
+
+    def __call__(
+            self,
+            text_it: t.Iterable[str],
+            feature_array_dict: FeatureArrayDict) -> np.ndarray:
+        return np.array([
+            self._generate(
+                text,
+                {
+                    feature_name: feature_arr[idx]
+                    for feature_name, feature_arr in feature_array_dict.items()
+                })
+            for idx, text in enumerate(text_it)
+        ])
+
+
 class SubstrCount(_ElementwiseTextFeatureGenerator):
 
     def __init__(self, name: str, substr: str):
         super().__init__(name)
         self._substr = substr
 
-    def _generate(self, text: str, feature_dict: t.Dict[str, float]) -> float:
+    def _generate(
+            self,
+            text: str,
+            feature_dict: t.Dict[str, t.Union[float, np.ndarray]]) -> t.Union[float, np.ndarray]:
         return float(text.count(self._substr))
 
 
 class Func(_ElementwiseTextFeatureGenerator):
 
-    def __init__(self, name: str, func: t.Callable[[str], float]):
+    def __init__(self, name: str, func: t.Callable[[str], t.Union[float, np.ndarray]]):
         super().__init__(name)
         self._func = func
 
-    def _generate(self, text: str, feature_dict: t.Dict[str, float]) -> float:
+    def _generate(
+            self,
+            text: str,
+            feature_dict: t.Dict[str, t.Union[float, np.ndarray]]) -> t.Union[float, np.ndarray]:
         return self._func(text)

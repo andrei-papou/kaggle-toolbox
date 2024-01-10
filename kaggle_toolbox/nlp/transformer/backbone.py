@@ -28,14 +28,20 @@ class Backbone(torch.nn.Module, t.Generic[_X]):
     def from_huggingface_checkpoint(
             cls,
             checkpoint: str,
-            zero_out_dropout: bool = False,
+            hidden_dropout: t.Optional[float] = None,
+            hidden_dropout_prob: t.Optional[float] = None,
+            attention_dropout: t.Optional[float] = None,
+            attention_dropout_prob: t.Optional[float] = None,
             output_hidden_states: bool = True) -> Backbone:
         config = AutoConfig.from_pretrained(checkpoint)
-        if zero_out_dropout:
-            config.hidden_dropout = 0.
-            config.hidden_dropout_prob = 0.
-            config.attention_dropout = 0.
-            config.attention_probs_dropout_prob = 0.
+        if hidden_dropout is not None:
+            config.hidden_dropout = hidden_dropout
+        if hidden_dropout_prob is not None:
+            config.hidden_dropout_prob = hidden_dropout_prob
+        if attention_dropout is not None:
+            config.attention_dropout = attention_dropout
+        if attention_dropout_prob is not None:
+            config.attention_dropout_prob = attention_dropout_prob
         config.return_dict = True
         config.output_hidden_states = output_hidden_states
         return cls(

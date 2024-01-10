@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import typing as t
 from dataclasses import dataclass
 from enum import Enum
@@ -24,6 +26,19 @@ class Movable(t_ext.Protocol):
 
     def to_cpu(self: _S) -> _S:
         ...
+
+
+class TensorX(t.NamedTuple):
+    """
+    Default movable wrapper for `torch.Tensor`.
+    """
+    data: torch.Tensor
+
+    def to_device(self, device: Device) -> TensorX:
+        return TensorX(data=self.data.to(device.as_torch))
+
+    def to_cpu(self) -> TensorX:
+        return TensorX(data=self.data.cpu())
 
 
 _T = t.TypeVar('_T')

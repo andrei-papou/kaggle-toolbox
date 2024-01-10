@@ -8,11 +8,21 @@ from .criteria import SmallerIsBetterCriteria
 
 
 class MSEMetric(PredQualityTorchmetricsMetric):
-    name = 'mse'
     criteria = SmallerIsBetterCriteria()
 
-    def __init__(self, squared: bool = True):
-        self._inner = torchmetrics.MeanSquaredError(squared=squared)
+    def __init__(self):
+        self._inner = torchmetrics.MeanSquaredError(squared=True)
+
+    @property
+    def inner(self) -> torchmetrics.Metric:
+        return self._inner
+
+
+class RMSEMetric(PredQualityTorchmetricsMetric):
+    criteria = SmallerIsBetterCriteria()
+
+    def __init__(self) -> None:
+        self._inner = torchmetrics.MeanSquaredError(squared=False)
 
     @property
     def inner(self) -> torchmetrics.Metric:
@@ -20,7 +30,6 @@ class MSEMetric(PredQualityTorchmetricsMetric):
 
 
 class MCRMSEMetric(PredQualityMetric):
-    name = 'mcrmse'
     criteria = SmallerIsBetterCriteria()
 
     def __init__(self) -> None:

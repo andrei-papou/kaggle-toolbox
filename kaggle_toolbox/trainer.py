@@ -9,7 +9,7 @@ from torch.cuda.amp.grad_scaler import GradScaler
 from torch.optim import Optimizer
 from torch.utils.data import Dataset, DataLoader, Sampler, default_collate as default_collate_fn
 
-from kaggle_toolbox.context import ContextManagerList
+from kaggle_toolbox.context import ContextManagerList, ContextManagerDict
 from kaggle_toolbox.data import LabeledDatasetItem, Movable, DatasetKind
 from kaggle_toolbox.device import Device
 from kaggle_toolbox.iter import Index, SizedIter, IterPlannerBuilder, FixedSubsetIterPlannerBuilder, \
@@ -17,10 +17,10 @@ from kaggle_toolbox.iter import Index, SizedIter, IterPlannerBuilder, FixedSubse
 from kaggle_toolbox.logging.base import Logger
 from kaggle_toolbox.loss import Loss
 from kaggle_toolbox.lr_scheduling import LRScheduler
-from kaggle_toolbox.metrics import LossMetric, PredQualityMetric
+from kaggle_toolbox.metrics import LossMetric, PredQualityMetric, format_dk_metric_name
 from kaggle_toolbox.model import Model
 from kaggle_toolbox.prediction import PredDict
-from kaggle_toolbox.progress import ProgressBar, ASCIIProgressBar
+from kaggle_toolbox.progress import ProgressBar, NoOpProgressBar
 from kaggle_toolbox.typing import ensure_list
 
 _X = t.TypeVar('_X', bound=Movable)
@@ -36,6 +36,10 @@ class IterationTrainer(t.Generic[_X]):
     @property
     def device(self) -> Device:
         return self._device
+
+    @property
+    def pred_quality_metric_dict(self) -> t.Dict[str, PredQualityMetric]:
+        return {}
 
     def do_train_iteration(
             self,
@@ -72,7 +76,7 @@ class StandardIterationTrainer(IterationTrainer[_X]):
             device: Device,
             grad_scaler: t.Optional[GradScaler] = None,
             max_grad_norm: t.Optional[float] = None,
-            pred_quality_metric_list: t.Optional[t.List[PredQualityMetric]] = None,
+            pred_quality_metric_dict: t.Optional[t.Dict[str, PredQualityMetric]] = None,
             map_output_to_pred: t.Callable[[torch.Tensor], torch.Tensor] = lambda x: x,
             progress_bar: t.Optional[ProgressBar] = None,
             hook_list: t.Optional[t.List[IterationHook]] = None):
@@ -86,9 +90,9 @@ class StandardIterationTrainer(IterationTrainer[_X]):
         self._grad_scaler = grad_scaler
         self._max_grad_norm = max_grad_norm
         self._loss_metric = LossMetric()
-        self._pred_quality_metric_list = pred_quality_metric_list if pred_quality_metric_list is not None else []
+        self._pred_quality_metric_dict = pred_quality_metric_dict if pred_quality_metric_dict is not None else {}
         self._map_output_to_pred = map_output_to_pred
-        self._progress_bar: ProgressBar = progress_bar if progress_bar is not None else ASCIIProgressBar()
+        self._progress_bar = progress_bar if progress_bar is not None else NoOpProgressBar()
         self._hook_list = hook_list if hook_list is not None else []
 
     @property
@@ -115,6 +119,10 @@ class StandardIterationTrainer(IterationTrainer[_X]):
     def grad_scaler(self) -> t.Optional[GradScaler]:
         return self._grad_scaler
 
+    @property
+    def pred_quality_metric_dict(self) -> t.Dict[str, PredQualityMetric]:
+        return self._pred_quality_metric_dict
+
     def _after_forward_pass(self, idx: Index, x: _X, y: torch.Tensor):
         for hook in self._hook_list:
             hook.after_forward_pass(self, idx, x, y)
@@ -131,7 +139,7 @@ class StandardIterationTrainer(IterationTrainer[_X]):
         it = self._progress_bar(data_iter, desc='Training.')
         with \
                 self._loss_metric as loss_metric, \
-                ContextManagerList(self._pred_quality_metric_list) as pred_quality_metric_list:
+                ContextManagerDict(self._pred_quality_metric_dict) as pred_quality_metric_dict:
             for idx, batch in it:
                 x = batch.x.to_device(device=self._device)
                 y = batch.y.to(device=self._device.as_str)
@@ -171,10 +179,13 @@ class StandardIterationTrainer(IterationTrainer[_X]):
                 pred = self._map_output_to_pred(pred)
                 loss_metric(loss.cpu().detach() * self._accumulate_gradient_steps)
                 pred_cpu, y_cpu = pred.cpu().detach(), y.cpu().detach()
-                for metric in pred_quality_metric_list:
+                for metric in pred_quality_metric_dict.values():
                     metric(pred_cpu, y_cpu)
 
-                metric_str = ' '.join([f'{m.name}: {m.compute():.4f}' for m in pred_quality_metric_list])
+                metric_str = ' '.join([
+                    f'{name}: {m.compute():.4f}'
+                    for name, m in pred_quality_metric_dict.items()
+                ])
                 it.set_description(
                     f'Training. '
                     f'epoch: {idx.global_step} [{(idx.local_step_pos[0] + 1) / idx.local_step_pos[1]:.3f}] '
@@ -183,7 +194,8 @@ class StandardIterationTrainer(IterationTrainer[_X]):
             return {
                 'train_loss': loss_metric.compute(),
                 **{
-                    f'train_{m.name}': m.compute() for m in pred_quality_metric_list
+                    format_dk_metric_name(name, DatasetKind.train): m.compute()
+                    for name, m in pred_quality_metric_dict.items()
                 }
             }
 
@@ -197,7 +209,7 @@ class StandardIterationTrainer(IterationTrainer[_X]):
         it = self._progress_bar(data_loader, desc='Validating.', total=len(data_loader))
         with \
                 self._loss_metric as loss_metric, \
-                ContextManagerList(self._pred_quality_metric_list) as pred_quality_metric_list:
+                ContextManagerDict(self._pred_quality_metric_dict) as pred_quality_metric_dict:
             batch: LabeledDatasetItem[_X]
             for batch in it:
                 x, y = batch.x, batch.y
@@ -211,11 +223,14 @@ class StandardIterationTrainer(IterationTrainer[_X]):
                 pred = self._map_output_to_pred(pred)
                 loss_metric(loss.cpu().detach())
                 pred_cpu, y_cpu = pred.cpu().detach(), y.cpu().detach()
-                for metric in pred_quality_metric_list:
+                for metric in pred_quality_metric_dict.values():
                     metric(pred_cpu, y_cpu)
                 pred_dict.update(dict(zip(batch.id, [ensure_list(x.tolist()) for x in pred.cpu()])))
 
-                metric_str = ' '.join([f'{m.name}: {m.compute():.4f}' for m in pred_quality_metric_list])
+                metric_str = ' '.join([
+                    f'{name}: {m.compute():.4f}'
+                    for name, m in pred_quality_metric_dict.items()
+                ])
                 it.set_description(
                     f'Validating. '
                     f'loss: {loss_metric.compute():.4f} {metric_str}')
@@ -223,7 +238,8 @@ class StandardIterationTrainer(IterationTrainer[_X]):
             return {
                 'valid_loss': loss_metric.compute(),
                 **{
-                    f'valid_{m.name}': m.compute() for m in pred_quality_metric_list
+                    format_dk_metric_name(name, DatasetKind.valid): m.compute()
+                    for name, m in pred_quality_metric_dict.items()
                 }
             }, pred_dict
 
@@ -239,7 +255,7 @@ class FullCycleTrainer(t.Generic[_X]):
             num_epochs: int,
             batch_size: int,
             num_workers: int,
-            model_comparison_metric: t.Type[PredQualityMetric],
+            model_comparison_metric_name: str,
             train_iter_planner_builder: t.Optional[IterPlannerBuilder] = None,
             train_sampler: t.Optional[Sampler] = None,
             collator: t.Optional[t.Callable[[t.List[LabeledDatasetItem[_X]]], LabeledDatasetItem[_X]]] = None,
@@ -247,12 +263,14 @@ class FullCycleTrainer(t.Generic[_X]):
             logger_list: t.Optional[t.List[Logger]] = None,
             max_steps_no_improvement: t.Optional[int] = None,
             stop_at_epoch: t.Optional[int] = None,
-            use_persistent_workers: bool = False):
+            use_persistent_workers: bool = False,
+            report_metric_improvement: bool = False,
+            epoch_progress_bar: t.Optional[ProgressBar] = None):
         self._iteration_trainer = iteration_trainer
         self._num_epochs = num_epochs
         self._batch_size = batch_size
         self._num_workers = num_workers
-        self._model_comparison_metric = model_comparison_metric
+        self._model_comparison_metric_name = model_comparison_metric_name
         self._train_iter_planner_builder: IterPlannerBuilder = train_iter_planner_builder \
             if train_iter_planner_builder is not None \
             else FixedSubsetIterPlannerBuilder(subset_size=FracSubsetSize(1.0))
@@ -263,6 +281,12 @@ class FullCycleTrainer(t.Generic[_X]):
         self._max_steps_no_improvement = max_steps_no_improvement
         self._stop_at_epoch = stop_at_epoch
         self._use_persistent_workers = use_persistent_workers
+        self._report_metric_improvement = report_metric_improvement
+        self._epoch_progress_bar = epoch_progress_bar if epoch_progress_bar is not None else NoOpProgressBar()
+
+    @property
+    def _model_comparison_metric(self) -> PredQualityMetric:
+        return self._iteration_trainer.pred_quality_metric_dict[self._model_comparison_metric_name]
 
     def do_full_cycle(
             self,
@@ -291,6 +315,9 @@ class FullCycleTrainer(t.Generic[_X]):
         step_metric = best_metric
         steps_no_improvement = 0
         pred_dict: t.Optional[PredDict] = None
+
+        last_prog_reported_epoch = 0
+        epoch_progress_bar = self._epoch_progress_bar(it=range(self._num_epochs), total=self._num_epochs)
         with ContextManagerList(self._logger_list) as logger_list:
             while train_data_iter_planner.epoch < self._num_epochs \
                     and (self._max_steps_no_improvement is None
@@ -301,7 +328,7 @@ class FullCycleTrainer(t.Generic[_X]):
                 valid_metrics_to_track, iter_pred_dict = self._iteration_trainer.do_valid_iteration(
                     data_loader=valid_data_loader)
                 step_metric = valid_metrics_to_track[
-                    self._model_comparison_metric.name_for_dataset_kind(DatasetKind.valid)]
+                    format_dk_metric_name(self._model_comparison_metric_name, DatasetKind.valid)]
                 for logger in logger_list:
                     logger.log_metrics(
                         step=train_data_iter_planner.step,
@@ -310,7 +337,8 @@ class FullCycleTrainer(t.Generic[_X]):
                             **valid_metrics_to_track,
                         })
                 if self._model_comparison_metric.criteria.is_improvement(best_metric, step_metric):
-                    print(f'Best metric improved from {best_metric} to {step_metric}. Saving the model.')
+                    if self._report_metric_improvement:
+                        print(f'Best metric improved from {best_metric} to {step_metric}. Saving the model.')
                     if self._save_model_to_path is not None:
                         self._iteration_trainer.save_result(to_path=self._save_model_to_path)
                     best_metric = step_metric
@@ -318,6 +346,10 @@ class FullCycleTrainer(t.Generic[_X]):
                     steps_no_improvement = 0
                 else:
                     steps_no_improvement += 1
+                if train_data_iter_planner.epoch > last_prog_reported_epoch:
+                    epoch_progress_bar.update(1)
+                    last_prog_reported_epoch = train_data_iter_planner.epoch
+        epoch_progress_bar.close()
         assert pred_dict is not None
         return best_metric, pred_dict
 

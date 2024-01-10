@@ -60,9 +60,11 @@ class StandardPredictor(Predictor[_X]):
             pin_memory=self._device.is_gpu)
         self._model.eval()
         pred_dict = PredDict()
-        it = self._progress_bar(data_loader, desc='Predicting.', total=len(data_loader))
+        it = t.cast(
+            t.Iterable[DatasetItem[_X]],
+            self._progress_bar(data_loader, desc='Predicting.', total=len(data_loader)))
         for batch in it:
-            x = batch.x.to(self._device)
+            x = batch.x.to_device(self._device)
 
             with autocast(enabled=self._grad_scaler is not None):  # type: ignore
                 pred = self._model(x)
