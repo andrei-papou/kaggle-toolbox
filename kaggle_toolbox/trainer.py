@@ -265,10 +265,12 @@ class FullCycleTrainer(t.Generic[_X]):
             stop_at_epoch: t.Optional[int] = None,
             use_persistent_workers: bool = False,
             report_metric_improvement: bool = False,
-            epoch_progress_bar: t.Optional[ProgressBar] = None):
+            epoch_progress_bar: t.Optional[ProgressBar] = None,
+            valid_batch_size: t.Optional[int] = None):
         self._iteration_trainer = iteration_trainer
         self._num_epochs = num_epochs
-        self._batch_size = batch_size
+        self._train_batch_size = batch_size
+        self._valid_batch_size = valid_batch_size if valid_batch_size is not None else batch_size
         self._num_workers = num_workers
         self._model_comparison_metric_name = model_comparison_metric_name
         self._train_iter_planner_builder: IterPlannerBuilder = train_iter_planner_builder \
@@ -295,7 +297,7 @@ class FullCycleTrainer(t.Generic[_X]):
         train_data_loader = DataLoader(
             train_dataset,
             collate_fn=self._collator,
-            batch_size=self._batch_size,
+            batch_size=self._train_batch_size,
             sampler=self._train_sampler,
             num_workers=self._num_workers,
             pin_memory=self._iteration_trainer.device.is_gpu,
@@ -304,7 +306,7 @@ class FullCycleTrainer(t.Generic[_X]):
         valid_data_loader = DataLoader(
             valid_dataset,
             collate_fn=self._collator,
-            batch_size=self._batch_size,
+            batch_size=self._valid_batch_size,
             shuffle=False,
             num_workers=self._num_workers,
             pin_memory=self._iteration_trainer.device.is_gpu,
