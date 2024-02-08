@@ -1,4 +1,4 @@
-FROM docker.io/nvidia/cuda:11.6.2-base-ubuntu20.04
+FROM nvcr.io/nvidia/cuda:12.0.0-base-ubuntu22.04
 
 ENV TZ=Europe/Minsk
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
@@ -16,7 +16,7 @@ RUN apt update && apt install -y \
 	zip
 
 # Override git editor
-git config --global core.editor "code --wait"
+RUN git config --global core.editor "code --wait"
 
 # Install starship shell
 RUN curl -sS https://starship.rs/install.sh > install_starship.sh && \
